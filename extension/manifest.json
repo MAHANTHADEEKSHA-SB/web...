@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Orbit — private AI time tracker",
+  "version": "1.0.0",
+  "description": "Opt-in, local-only estimates of time in active AI tabs. Never reads prompts, conversations, or page content.",
+  "minimum_chrome_version": "120",
+  "permissions": ["storage", "alarms", "idle"],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*",
+    "https://perplexity.ai/*",
+    "https://www.perplexity.ai/*",
+    "https://copilot.microsoft.com/*"
+  ],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_popup": "popup.html", "default_title": "Orbit AI time tracker" }
+}
