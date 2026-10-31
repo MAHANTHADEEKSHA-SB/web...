@@ -1962,3 +1962,11 @@ th {
     font-size: 11px;
   }
 }
+
+/* Units stay visible after a value is entered. */
+.unit-input { display: flex; align-items: center; border: 1px solid #e8ddef; border-radius: 7px; background: #fff; overflow: hidden; }
+.unit-input:focus-within { outline: 2px solid #baa7ec; outline-offset: 1px; }
+.unit-input input { border: 0; border-radius: 0; min-width: 0; flex: 1; width: 100%; }
+.unit-input input:focus { outline: none; }
+.unit-input > span { flex-shrink: 0; padding: 0 11px 0 4px; color: #8c779d; font-size: 10px; pointer-events: none; }
+.field-help { font-size: 10px; font-weight: 400; line-height: 1.6; color: #8c779d; }
