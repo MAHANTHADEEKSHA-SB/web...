@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Orbit tracker</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <span class="mark">◌</span><strong>orbit<span>.</span></strong
+      ><span class="pill">ON YOUR DEVICE</span>
+    </header>
+    <main>
+      <p class="eyebrow">A LITTLE MORE AWARENESS</p>
+      <h1>Make your AI time<br />count.</h1>
+      <p class="intro">
+        An estimate of time spent in your active AI tabs. Your conversations
+        stay yours.
+      </p>
+      <label class="toggle-card"
+        ><span
+          ><strong>Track my AI time</strong
+          ><small id="status">Loading tracker…</small></span
+        ><input
+          type="checkbox"
+          id="enabled"
+          aria-describedby="privacy"
+          disabled /><span class="switch"></span
+      ></label>
+      <section class="today">
+        <div class="today-label">TODAY <span>◷</span></div>
+        <div id="total">0<span> min</span></div>
+        <div id="sites" class="sites"></div>
+      </section>
+      <p id="privacy" class="privacy">
+        Local storage only. No prompts, page content, tab titles, tokens, or
+        billing data are collected. Pauses when you switch away, lock your
+        device, or become idle.
+      </p>
+      <button id="export" class="primary" disabled>
+        Export for Orbit <span>↗</span>
+      </button>
+      <p class="transfer">
+        Import the JSON file in your Orbit dashboard to see your time. Nothing
+        is sent automatically.
+      </p>
+      <div class="footer">
+        <a href="help.html" target="_blank" rel="noopener">How it works ↗</a
+        ><button id="clear">Clear tracker data</button>
+      </div>
+      <p id="notice" role="status" aria-live="polite"></p>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
