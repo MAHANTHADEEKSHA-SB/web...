@@ -28,13 +28,15 @@ function render(state) {
   const unit = document.createElement("span");
   unit.textContent = " min";
   $("#total").append(unit);
+  $("#messages").textContent =
+    state.totalMessages == null ? "—" : String(state.totalMessages);
   $("#sites").replaceChildren();
   for (const row of state.rows.sort(
     (a, b) => b.milliseconds - a.milliseconds,
   )) {
     const item = document.createElement("span");
     item.className = "site";
-    item.textContent = `${row.site.name} · ${Math.max(1, Math.round(row.milliseconds / 60000))}m`;
+    item.textContent = `${row.site.name} · ${row.milliseconds > 0 && row.milliseconds < 60000 ? "<1" : Math.round(row.milliseconds / 60000)}m · ${row.messageCount ?? "—"} sends`;
     $("#sites").append(item);
   }
 }
@@ -86,7 +88,7 @@ $("#clear").addEventListener("click", () =>
   action(async () => {
     if (
       !confirm(
-        "Delete all time recorded by this extension? Export a backup first. Data already imported into Orbit is not affected.",
+        "Delete all time and send counts recorded by this extension? Export a backup first. Data already imported into Orbit is not affected.",
       )
     )
       return;

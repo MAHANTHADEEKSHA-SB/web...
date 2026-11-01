@@ -5,6 +5,7 @@ import {
   makeExport,
   settle,
   siteForUrl,
+  recordSend,
 } from "./core.js";
 
 const KEY = "orbit-private-tracker-v1";
@@ -25,7 +26,7 @@ async function saveState(state) {
   await chrome.action.setBadgeText({ text: state.enabled ? "ON" : "" });
   await chrome.action.setBadgeBackgroundColor({ color: "#7961ca" });
 }
-async function activeSite() {
+async function activeContext() {
   try {
     if ((await chrome.idle.queryState(60)) !== "active") return null;
     const window = await chrome.windows.getLastFocused();
@@ -36,7 +37,8 @@ async function activeSite() {
       windowId: window.id,
     });
     // The host permissions reveal URL only for supported domains. Nothing is read from the page.
-    return tab && !tab.incognito ? siteForUrl(tab.url) : null;
+    const site = tab && !tab.incognito ? siteForUrl(tab.url) : null;
+    return site ? { site, tabId: tab.id } : null;
   } catch {
     return null;
   }
@@ -44,8 +46,21 @@ async function activeSite() {
 async function sample({ resetCursor = false } = {}) {
   let state = await readState();
   if (resetCursor) state = { ...state, cursor: null };
-  const site = state.enabled ? await activeSite() : null;
-  state = advance(state, Date.now(), site);
+  const context = state.enabled ? await activeContext() : null;
+  let observerReady = false;
+  if (context) {
+    try {
+      observerReady =
+        (
+          await chrome.tabs.sendMessage(context.tabId, {
+            type: "observer-status",
+          })
+        )?.available === true;
+    } catch {
+      /* No observer / unsupported UI: counts stay unavailable. */
+    }
+  }
+  state = advance(state, Date.now(), context?.site ?? null, observerReady);
   await saveState(state);
   return state;
 }
@@ -56,8 +71,13 @@ async function ensureAlarm() {
 function enqueueSample(options) {
   serialize(() => sample(options)).catch(() => {});
 }
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
   serialize(async () => {
+    // Expanded tracking requires a fresh opt-in after an update.
+    if (details.reason === "update") {
+      const state = await readState();
+      await saveState({ ...state, enabled: false, cursor: null });
+    }
     await ensureAlarm();
     await sample({ resetCursor: true });
   }).catch(() => {});
@@ -79,8 +99,40 @@ chrome.tabs.onRemoved.addListener(() => enqueueSample());
 chrome.windows.onFocusChanged.addListener(() => enqueueSample());
 chrome.idle.onStateChanged.addListener(() => enqueueSample());
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
+  if (sender.id !== chrome.runtime.id) return false;
+  if (message?.type === "observed-send") {
+    const site = siteForUrl(sender.url);
+    if (
+      !site ||
+      sender.frameId !== 0 ||
+      !sender.tab?.active ||
+      sender.tab.incognito
+    )
+      return false;
+    serialize(async () => {
+      const state = await sample();
+      if (!state.enabled) return { ok: false };
+      const focused = await chrome.windows.getLastFocused();
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        windowId: focused.id,
+      });
+      if (
+        !focused.focused ||
+        focused.incognito ||
+        focused.type !== "normal" ||
+        tab?.id !== sender.tab.id ||
+        (await chrome.idle.queryState(60)) !== "active"
+      )
+        return { ok: false };
+      const next = recordSend(state, site, message.eventId, Date.now());
+      await saveState(next);
+      return { ok: true };
+    }).then(respond, () => respond({ ok: false }));
+    return true;
+  }
   if (
-    sender.id !== chrome.runtime.id ||
+    sender.tab ||
     !["status", "enabled", "export", "clear"].includes(message?.type)
   )
     return false;
@@ -90,21 +142,15 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     if (message.type === "enabled") {
       state = settle(state, Date.now());
       state.enabled = message.enabled === true;
-      state = advance(
-        state,
-        Date.now(),
-        state.enabled ? await activeSite() : null,
-      );
+      state.cursor = null;
       await saveState(state);
+      state = await sample();
     }
     if (message.type === "clear") {
       state = { ...initialState(crypto.randomUUID()), enabled: state.enabled };
-      state = advance(
-        state,
-        Date.now(),
-        state.enabled ? await activeSite() : null,
-      );
+      state.cursor = null;
       await saveState(state);
+      state = await sample();
     }
     if (message.type === "export") return { ok: true, data: makeExport(state) };
     const today = localDay(Date.now());
@@ -116,6 +162,9 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
       enabled: state.enabled,
       rows,
       totalMilliseconds: rows.reduce((sum, row) => sum + row.milliseconds, 0),
+      totalMessages: rows.some((row) => row.messageCount != null)
+        ? rows.reduce((sum, row) => sum + (row.messageCount || 0), 0)
+        : null,
     };
   }).then(respond, () =>
     respond({

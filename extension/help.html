@@ -36,66 +36,100 @@
     </style>
   </head>
   <body>
-    <h1>Your AI time.<br />Your business.</h1>
+    <h1>Your AI activity.<br />Your business.</h1>
     <p>
-      Orbit's optional extension records estimates of active time on ChatGPT,
-      Claude, Gemini, Perplexity, and Microsoft Copilot. Tracking is off until
-      you enable it in the extension popup.
+      Orbit 1.1.0 records active time and observed send actions on ChatGPT,
+      Claude, Gemini, Perplexity, and Microsoft Copilot. Enable
+      <strong>Track AI time &amp; sends</strong> in the popup to start. Tracking
+      starts paused and pauses again after extension updates.
     </p>
     <h2>What it records</h2>
     <p>
-      Only provider name, calendar day, and accumulated minutes. It never reads
-      page content, prompts, replies, tab titles, tokens, or billing
-      information. There are no analytics, accounts, or network requests.
+      Provider name, calendar day, active minutes, and observed send counts. A
+      content script watches send controls and inspects their structure and
+      attributes. It does not read or store prompt values or replies, scan
+      conversation history, or collect tab titles. There are no analytics,
+      accounts, or network requests.
     </p>
-    <h2>How it estimates time</h2>
+    <h2>What an observed send means</h2>
+    <p>
+      Recognized send-button clicks, Enter presses, and form submissions count
+      as observed actions. Related events within 750 milliseconds are combined;
+      event IDs prevent duplicate deliveries from adding another count. These
+      are not provider-confirmed successful messages. Failed attempts can be
+      counted, changed layouts or languages can be missed, and very rapid
+      actions can be combined. Confirm detection on the services you use.
+    </p>
+    <p>
+      Orbit cannot read official token usage, billing, subscription credits, or
+      remaining message limits. It does not calculate these from your send
+      counts or time. Manual token and cost entries in the dashboard remain
+      separate from browser observations.
+    </p>
+    <h2>How time is recorded</h2>
     <p>
       The tracker samples the active AI tab in the focused browser window. It
-      pauses when the browser loses focus, you switch to another website, your
-      screen locks, or your device has been idle for a minute. It excludes gaps
-      longer than 90 seconds and ignores incognito windows. Reading without
-      moving the mouse or typing can be undercounted; OS sleep and delayed
-      browser events can affect estimates.
+      pauses when you switch away, the browser loses focus, your screen locks,
+      or your device is idle for a minute. It excludes gaps longer than 90
+      seconds and ignores incognito windows. Reading without moving the mouse or
+      typing can be undercounted; OS sleep and delayed events can affect timing.
     </p>
-    <h2>Bring your time into Orbit</h2>
+    <h2>Bring your activity into Orbit</h2>
     <ol>
+      <li>Choose <strong>Export for Orbit</strong> in the extension popup.</li>
       <li>
-        Open the extension popup and choose <strong>Export for Orbit</strong>.
+        Import the downloaded JSON file in your Orbit dashboard's Settings.
       </li>
       <li>
-        Open your Orbit dashboard and import the downloaded JSON file in
-        Settings.
-      </li>
-      <li>
-        Re-export and import later to refresh accumulated daily totals. Each
-        provider/day has a stable ID to prevent double counting.
+        Repeat to refresh totals. Matching provider/day IDs are replaced, not
+        duplicated.
       </li>
     </ol>
     <p>
-      Each record represents one provider's total for a day, not an individual
-      conversation. Token and cost fields are zero because this extension does
-      not measure either.
+      Each record is a daily provider total, not a conversation. Exports
+      identify their source as <code>extension</code>. Send counts are numeric
+      where observed; old records without counts have <code>null</code>. Tokens
+      and costs are also <code>null</code> because they are unavailable, not
+      zero.
     </p>
-    <h2>Your control</h2>
+    <h2>Updating an older installation</h2>
+    <ol>
+      <li>
+        Download the new ZIP from Orbit Settings and replace files in the same
+        extension folder.
+      </li>
+      <li>
+        Click <strong>Reload</strong> on Orbit in your browser's Extensions
+        page.
+      </li>
+      <li>
+        Refresh your AI tabs and enable
+        <strong>Track AI time &amp; sends</strong> again.
+      </li>
+    </ol>
     <p>
-      Turn tracking off at any time. Your history remains in this browser
-      profile's extension storage until you clear it or uninstall the extension.
-      Clearing this history does not remove records already imported into the
-      dashboard.
+      Existing time records remain saved. Send counts start when the updated
+      observer is enabled; past conversations are not counted. Keep the same
+      extension installed and folder location to retain its local history.
     </p>
-    <h2>Permissions</h2>
+    <h2>Your control and permissions</h2>
     <p>
-      <code>storage</code> saves local totals and your preference;
-      <code>alarms</code> wakes the worker every 30 seconds;
-      <code>idle</code> detects inactivity. Access is limited to the named AI
-      domains so the browser can identify supported tabs. Although the browser
-      describes host access broadly, this extension uses no content scripts and
-      never inspects page content. No access to arbitrary websites is requested.
+      Turn tracking off at any time. History remains in this browser profile
+      until cleared or the extension is uninstalled. Clearing extension history
+      does not remove records already imported into the dashboard.
     </p>
     <p>
-      The source files in this extension folder are available for inspection,
-      including <code>manifest.json</code>, <code>background.js</code>, and
-      <code>core.js</code>.
+      <code>storage</code> saves your choice, daily totals, and short-lived
+      deduplication IDs; <code>alarms</code> samples time every 30 seconds;
+      <code>idle</code> detects inactivity. Host access and content scripts
+      cover only the named AI sites. Google Search, unrelated websites, mobile
+      apps, and desktop AI apps are not tracked. There is no broad tabs
+      permission. Keep incognito access disabled.
+    </p>
+    <p>
+      Source files are available in this extension folder, including
+      <code>manifest.json</code>, <code>content.js</code>,
+      <code>background.js</code>, and <code>core.js</code>.
     </p>
   </body>
 </html>

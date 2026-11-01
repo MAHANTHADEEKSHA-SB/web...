@@ -55,20 +55,64 @@ export function settle(state, timestamp) {
       site: cursor.site,
       date: existing?.date ?? date.toISOString(),
       milliseconds: (existing?.milliseconds ?? 0) + end - start,
+      messageCount: existing
+        ? (existing.messageCount ?? null)
+        : cursor.observerReady
+          ? 0
+          : null,
     };
     start = end;
   }
   return result;
 }
-export function advance(state, timestamp, activeSite = null) {
+export function advance(
+  state,
+  timestamp,
+  activeSite = null,
+  observerReady = false,
+) {
   const result = settle(state, timestamp);
   if (result.enabled && activeSite)
-    result.cursor = { at: timestamp, site: activeSite };
+    result.cursor = { at: timestamp, site: activeSite, observerReady };
   return result;
+}
+
+/** Count an observed send action, never message text or estimated tokens. */
+export function recordSend(state, site, eventId, timestamp) {
+  if (
+    !state.enabled ||
+    !site ||
+    typeof eventId !== "string" ||
+    !/^[a-zA-Z0-9-]{1,80}$/.test(eventId)
+  )
+    return state;
+  const recent = (state.recentSends || []).filter(
+    (event) => timestamp - event.at < 120000,
+  );
+  if (recent.some((event) => event.id === eventId)) return state;
+  const day = localDay(timestamp);
+  const key = `${day}|${site.id}`;
+  const existing = state.buckets[key];
+  const date = new Date(timestamp);
+  date.setHours(0, 0, 0, 0);
+  return {
+    ...state,
+    recentSends: [...recent, { id: eventId, at: timestamp }].slice(-128),
+    buckets: {
+      ...state.buckets,
+      [key]: {
+        day,
+        site,
+        date: existing?.date ?? date.toISOString(),
+        milliseconds: existing?.milliseconds ?? 0,
+        messageCount: (existing?.messageCount ?? 0) + 1,
+      },
+    },
+  };
 }
 export function exportSessions(state) {
   return Object.values(state.buckets)
-    .filter((bucket) => bucket.milliseconds > 0)
+    .filter((bucket) => bucket.milliseconds > 0 || bucket.messageCount > 0)
     .sort(
       (a, b) =>
         a.day.localeCompare(b.day) || a.site.id.localeCompare(b.site.id),
@@ -82,9 +126,11 @@ export function exportSessions(state) {
       title: `${bucket.site.name} · browser activity`,
       date: bucket.date,
       duration: Math.round(bucket.milliseconds / 600) / 100,
-      inputTokens: 0,
-      outputTokens: 0,
-      cost: 0,
+      source: "extension",
+      messageCount: bucket.messageCount ?? null,
+      inputTokens: null,
+      outputTokens: null,
+      cost: null,
       category: "Other",
     }));
 }

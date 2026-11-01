@@ -1,6 +1,6 @@
 # Orbit
 
-A personal dashboard for understanding how you use AI. Log sessions across Claude, ChatGPT, Gemini, and other tools; explore time, tokens, and estimated costs; and keep a portable backup of your history.
+A personal dashboard for understanding how you use AI. See recorded time, observed send actions, activity records, and active days across Claude, ChatGPT, Gemini, and other tools. Keep a portable backup of your history, with optional manual token and cost entries.
 
 Orbit is a static website. It runs without a backend, paid subscription, database, or API key, and can be hosted for free.
 
@@ -25,13 +25,17 @@ The generated website is in `dist/`. The relative asset base lets it work on a G
 
 ## Track your usage
 
-- For automatic time estimates, open **Settings → Browser extension → Download extension** in Orbit, extract the ZIP, and follow the [Chrome/Edge installation guide](extension/README.md). Tracking is off until you enable it. It records active AI website time locally and never reads prompts or conversations. Export from its popup, then import the file into Orbit to refresh your dashboard.
+- For automatic active-time recording and observed send-action counts, open **Settings → Download extension** in Orbit, extract the ZIP, and follow the [Chrome/Edge installation guide](extension/README.md). Tracking is off until you enable **Track AI time & sends**. It observes send controls without reading or storing prompts or replies. Export from its popup, then import the file into Orbit to refresh your dashboard.
 - Log a session with an AI provider, a description, and the time you spent. Token counts and cost are optional.
 - Filter your activity and explore the dashboard to see how your habits change.
 - Try the demo to explore the interface with sample activity. Demo activity is separate from your own history.
 - Export your history regularly and import the backup when moving to another browser or device.
 
-Cost estimates use illustrative provider rates. Enter a known cost per session to override the estimate. They are not a billing statement from an AI provider. Chat subscriptions and API usage are billed differently, and this website does not read your provider account or invoices.
+An observed send action is a click, Enter press, or form submission on a recognized send control. It is not confirmation of a successful reply or a provider usage charge. Changed site layouts or controls can cause missed actions. Orbit does not read official token totals, billing, or remaining message limits.
+
+Extension records leave token and cost fields unavailable rather than treating them as zero. Token counts and costs shown for manual records are values you enter or estimates from those values. Cost estimates use illustrative provider rates. Enter a known cost per session to override the estimate. They are not a billing statement from an AI provider. Chat subscriptions and API usage are billed differently, and this website does not read your provider account or invoices.
+
+If you already installed extension 1.0, download the new ZIP and replace its files in the same extension folder. Click **Reload** in Chrome/Edge’s extension manager, refresh your open AI tabs, then enable tracking again. Updates pause tracking and retain recorded history. See the [update instructions](extension/README.md#update-an-existing-installation).
 
 ## Host for free with GitHub Pages
 
