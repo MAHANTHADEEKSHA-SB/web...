@@ -2059,3 +2059,54 @@ input:disabled {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+
+/* B6: on phones, table rows become two-line cards: title + actions, then the
+   measured details. Unavailable values (.na) are omitted instead of repeated. */
+@media (max-width: 640px) {
+  .sessions-panel table {
+    white-space: normal;
+  }
+  .sessions-panel thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .sessions-panel tbody {
+    display: block;
+  }
+  .sessions-panel tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    padding: 14px 18px;
+    border-bottom: 1px solid #f5f2f7;
+  }
+  .sessions-panel td {
+    display: block;
+    padding: 0;
+    border: 0;
+    font-size: 12px;
+  }
+  .sessions-panel td.col-title {
+    flex: 1 1 calc(100% - 72px);
+  }
+  .sessions-panel td.col-actions {
+    margin-left: auto;
+  }
+  .sessions-panel td:not(.col-title):not(.col-actions) {
+    order: 3;
+  }
+  .sessions-panel td.na {
+    display: none;
+  }
+  .sessions-panel td.col-sends::after,
+  .sessions-panel td.col-tokens::after {
+    content: " " attr(data-unit);
+  }
+  .text-link {
+    white-space: nowrap;
+  }
+}
