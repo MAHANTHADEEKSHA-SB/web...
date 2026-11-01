@@ -368,7 +368,7 @@ check("B14", "Costs never render as a misleading $0.00", async (b) => {
   const { context, page } = await open(b);
   const zeros = await page.evaluate(() => [...document.querySelectorAll("td")].filter((t) => t.innerText.trim() === "$0.00").length);
   await context.close();
-  return { pass: zeros === 0, detail: `table cells showing $0.00: ${zeros} (use "—" for none, "<$0.01" for tiny)` };
+  return { pass: zeros === 0, detail: `table cells showing $0.00: ${zeros} (exact zero renders "$0", sub-cent costs "<$0.01")` };
 });
 
 check("B15", "First run (empty personal workspace) shows onboarding instead of a wall of zeros", async (b) => {
