@@ -13,6 +13,7 @@ import {
   saveSessions,
   parseImport,
   exportData,
+  STORAGE_KEY,
 } from "./data.js";
 import { cellMoney, compact, duration, money, plural } from "./format.js";
 
@@ -398,7 +399,7 @@ function bindAction(button) {
       import: importFile,
       recover: () => {
         try {
-          const raw = localStorage.getItem("ai-usage-sessions-v1");
+          const raw = localStorage.getItem(STORAGE_KEY);
           if (raw !== null) download(raw, "json");
           else toast("No stored file is available.");
         } catch {
@@ -602,7 +603,7 @@ function importFile() {
   input.click();
 }
 window.addEventListener("storage", (e) => {
-  if (e.key === "ai-usage-sessions-v1") {
+  if (e.key === STORAGE_KEY) {
     try {
       state.personal = loadSessions();
       renderContent();
