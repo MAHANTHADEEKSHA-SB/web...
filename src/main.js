@@ -482,9 +482,9 @@ function openSession(session) {
   };
   dialog.showModal();
 }
-function confirmAction(title, message, label, fn) {
+function confirmAction(title, message, label, fn, tone = "primary") {
   const d = document.querySelector("#confirm-dialog");
-  d.innerHTML = `<div class="confirm-content"><h2>${esc(title)}</h2><p>${esc(message)}</p><div class="modal-footer"><button class="button secondary" id="cancel-confirm">Cancel</button><button class="button primary" id="accept-confirm">${esc(label)}</button></div></div>`;
+  d.innerHTML = `<div class="confirm-content"><h2>${esc(title)}</h2><p>${esc(message)}</p><div class="modal-footer"><button class="button secondary" id="cancel-confirm">Cancel</button><button class="button ${tone}" id="accept-confirm">${esc(label)}</button></div></div>`;
   d.querySelector("#cancel-confirm").onclick = () => d.close();
   d.querySelector("#accept-confirm").onclick = () => {
     d.close();
@@ -504,6 +504,7 @@ function deleteSession(id) {
       renderContent();
       toast("Session removed.");
     },
+    "danger-solid",
   );
 }
 function clearPersonal() {
@@ -517,6 +518,7 @@ function clearPersonal() {
         toast("Personal sessions cleared.");
       }
     },
+    "danger-solid",
   );
 }
 function download(content, ext) {

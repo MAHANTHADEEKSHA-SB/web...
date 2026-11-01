@@ -2110,3 +2110,13 @@ input:disabled {
     white-space: nowrap;
   }
 }
+
+/* B11: destructive confirmations read as destructive (white text 6.47:1). */
+.button.danger-solid {
+  background: #b4233c;
+  border-color: #a01f35;
+  color: #fff;
+}
+.button.danger-solid:hover {
+  background: #a01f35;
+}
