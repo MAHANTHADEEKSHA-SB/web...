@@ -11,6 +11,8 @@ import {
   saveSessions,
   STORAGE_KEY,
   summarize,
+  timeByTool,
+  toolName,
   validateSession,
 } from "../src/data.js";
 
@@ -145,6 +147,33 @@ test("filters local date boundaries, provider and case-insensitive search; exclu
   assert.equal(filterSessions(sessions, { days: 0, now }).length, 3);
 });
 
+test("future-dated records stay listable for editing without entering totals", () => {
+  const now = new Date(2026, 9, 31, 12);
+  const sessions = [
+    validateSession(example({ id: "past", date: new Date(2026, 9, 30).toISOString() })),
+    validateSession(
+      example({ id: "future", date: new Date(2026, 10, 2, 9).toISOString() }),
+    ),
+  ];
+  assert.deepEqual(
+    filterSessions(sessions, { days: 0, now }).map((s) => s.id),
+    ["past"],
+  );
+  assert.deepEqual(
+    filterSessions(sessions, { days: 0, now, includeFuture: true }).map(
+      (s) => s.id,
+    ),
+    ["future", "past"],
+  );
+  // Bounded ranges keep their lower edge; the future record is still listed.
+  assert.deepEqual(
+    filterSessions(sessions, { days: 7, now, includeFuture: true }).map(
+      (s) => s.id,
+    ),
+    ["future", "past"],
+  );
+});
+
 test("daily buckets include empty days and aggregate at local midnight", () => {
   const now = new Date(2026, 9, 31, 12);
   const sessions = [
@@ -225,6 +254,11 @@ test("storage round trips; corrupt data is preserved and storage failures remain
   const sessions = [validateSession(example())];
   saveSessions(sessions, storage);
   assert.deepEqual(loadSessions(storage), sessions);
+  assert.ok(
+    !data.get(STORAGE_KEY).includes("\n"),
+    "storage uses compact JSON; only downloads are indented",
+  );
+  assert.ok(exportData(sessions).includes("\n  "));
   data.set(STORAGE_KEY, "broken");
   assert.throws(() => loadSessions(storage), /preserved/);
   assert.equal(data.get(STORAGE_KEY), "broken");
@@ -252,7 +286,23 @@ test("demo data is deterministic, complete, unique and never in the future", () 
   const now = new Date(2026, 10, 1, 0, 1);
   const sessions = createDemoSessions(now);
   assert.deepEqual(sessions, createDemoSessions(now));
-  assert.ok(sessions.length >= 100);
+  assert.ok(sessions.length >= 60);
+  assert.ok(
+    sessions.some((s) => s.source === "extension" && s.messageCount > 0),
+    "the demo shows observed sends",
+  );
+  assert.ok(
+    sessions.some((s) => s.source === "manual" && s.cost > 0),
+    "the demo shows logged tokens and cost",
+  );
+  // A provider never has both logged and tracked time on one day, so the
+  // demo's totals are not inflated by double counting.
+  const byDay = new Map();
+  for (const s of sessions) {
+    const key = `${new Date(s.date).toDateString()}|${s.provider}`;
+    byDay.set(key, (byDay.get(key) || new Set()).add(s.source));
+  }
+  assert.ok([...byDay.values()].every((sources) => sources.size === 1));
   assert.equal(
     new Set(sessions.map((session) => session.id)).size,
     sessions.length,
@@ -312,5 +362,42 @@ test("daily observed charts preserve unknown gaps rather than manufacturing zero
   assert.deepEqual(
     dailyUsage([tracked, legacy], 3, now).map((day) => day.messages),
     [null, null, 0],
+  );
+});
+
+test("time by tool keeps tracked site names and merges logged and tracked use of a tool", () => {
+  const day = new Date(2026, 9, 30).toISOString();
+  const tracked = (site, provider, duration, messageCount) =>
+    validateSession({
+      id: `orbit-extension-x-2026-10-30-${site.toLowerCase()}`,
+      provider,
+      model: `${site} website`,
+      title: `${site} · browser activity`,
+      date: day,
+      duration,
+      source: "extension",
+      messageCount,
+      category: "Other",
+    });
+  const sessions = [
+    tracked("Claude", "claude", 40, 12),
+    tracked("Perplexity", "other", 25, null),
+    validateSession(example({ id: "api", duration: 30 })), // logged Claude work
+    validateSession(example({ id: "local", provider: "other", duration: 5 })),
+  ];
+  assert.equal(toolName(sessions[1]), "Perplexity");
+  assert.equal(toolName(sessions[3]), "Other AI");
+  assert.deepEqual(
+    timeByTool(sessions).map(({ name, minutes, sends, observed }) => [
+      name,
+      minutes,
+      sends,
+      observed,
+    ]),
+    [
+      ["Claude", 70, 12, true],
+      ["Perplexity", 25, 0, false],
+      ["Other AI", 5, 0, false],
+    ],
   );
 });

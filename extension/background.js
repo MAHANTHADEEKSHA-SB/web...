@@ -6,6 +6,8 @@ import {
   settle,
   siteForUrl,
   recordSend,
+  isOlderVersion,
+  OBSERVER_VERSION,
 } from "./core.js";
 
 const KEY = "orbit-private-tracker-v1";
@@ -65,7 +67,11 @@ async function sample({ resetCursor = false } = {}) {
   return state;
 }
 async function ensureAlarm() {
-  await chrome.alarms.create(ALARM, { periodInMinutes: 0.5 });
+  // Creating an alarm that already exists replaces it and restarts its
+  // period, so the popup's 5-second status polls would keep postponing the
+  // 30-second sample. Only create it when it is missing.
+  if (!(await chrome.alarms.get(ALARM)))
+    await chrome.alarms.create(ALARM, { periodInMinutes: 0.5 });
   chrome.idle.setDetectionInterval(60);
 }
 function enqueueSample(options) {
@@ -73,8 +79,13 @@ function enqueueSample(options) {
 }
 chrome.runtime.onInstalled.addListener((details) => {
   serialize(async () => {
-    // Expanded tracking requires a fresh opt-in after an update.
-    if (details.reason === "update") {
+    // Send observation (1.1.0) expanded what is tracked, so updating from an
+    // older version needs a fresh opt-in. Later updates, including Reloads of
+    // the unpacked extension, keep the user's choice.
+    if (
+      details.reason === "update" &&
+      isOlderVersion(details.previousVersion, OBSERVER_VERSION)
+    ) {
       const state = await readState();
       await saveState({ ...state, enabled: false, cursor: null });
     }

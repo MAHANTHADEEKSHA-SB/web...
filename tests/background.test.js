@@ -61,6 +61,10 @@ async function worker(t, initial = {}) {
     },
     alarms: {
       create: async (...args) => context.alarms.push(args),
+      get: async (name) => {
+        const created = context.alarms.findLast((args) => args[0] === name);
+        return created ? { name, ...created[1] } : undefined;
+      },
       onAlarm: event(),
     },
     idle: {
@@ -172,6 +176,17 @@ test("worker popup starts paused, toggles persistently, and reports recorded act
     (await w.message({ type: "status" })).response.totalMilliseconds,
     30000,
   );
+});
+
+test("popup polling never re-creates, and so never postpones, the sampling alarm", async (t) => {
+  const w = await worker(t, { enabled: true });
+  w.chrome.runtime.onInstalled.emit({ reason: "install" });
+  for (let poll = 0; poll < 5; poll += 1) await w.message({ type: "status" });
+  assert.equal(w.context.alarms.length, 1);
+  assert.deepEqual(w.context.alarms[0], [
+    "orbit-sample",
+    { periodInMinutes: 0.5 },
+  ]);
 });
 
 test("worker rejects foreign extensions and content scripts cannot read or control the popup API", async (t) => {
@@ -356,6 +371,28 @@ test("extension update pauses tracking while preserving accumulated records and 
   assert.equal(w.state.installationId, "retained-id");
   assert.deepEqual(w.state.buckets[`${day}|claude`], bucket);
   assert.equal(w.state.cursor, null);
+});
+
+test("only updates from before send observation (1.1.0) require a fresh opt-in", async (t) => {
+  const fromLegacy = await worker(t, { enabled: true });
+  fromLegacy.chrome.runtime.onInstalled.emit({
+    reason: "update",
+    previousVersion: "1.0.0",
+  });
+  assert.equal(
+    (await fromLegacy.message({ type: "status" })).response.enabled,
+    false,
+  );
+  const fromCurrent = await worker(t, { enabled: true });
+  fromCurrent.chrome.runtime.onInstalled.emit({
+    reason: "update",
+    previousVersion: "1.1.0",
+  });
+  assert.equal(
+    (await fromCurrent.message({ type: "status" })).response.enabled,
+    true,
+    "a Reload or patch update keeps tracking enabled",
+  );
 });
 
 test("worker distinguishes unavailable observation from a ready observer with zero sends", async (t) => {

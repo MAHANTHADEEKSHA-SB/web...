@@ -28,15 +28,15 @@ header strong span {
   color: #8a71cf;
 }
 .mark {
-  font-size: 34px;
-  line-height: 1;
-  color: #8466cd;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
 }
 .pill {
   margin-left: auto;
-  font-size: 8px;
+  font-size: 12px;
   letter-spacing: 1.2px;
-  color: #797080;
+  color: #6f6675;
   background: #eeebf3;
   padding: 5px 7px;
   border-radius: 5px;
@@ -45,9 +45,9 @@ main {
   padding: 22px 24px;
 }
 .eyebrow {
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 1.6px;
-  color: #8d819f;
+  color: #786b8c;
   margin: 0 0 10px;
 }
 h1 {
@@ -58,7 +58,7 @@ h1 {
   margin: 0 0 14px;
 }
 .intro {
-  color: #867d91;
+  color: #756d80;
   font-size: 12px;
   margin: 0 0 22px;
 }
@@ -76,8 +76,8 @@ h1 {
 }
 .toggle-card small {
   display: block;
-  color: #8e849b;
-  font-size: 10px;
+  color: #7c718b;
+  font-size: 12px;
   margin-top: 3px;
 }
 .toggle-card input {
@@ -120,9 +120,9 @@ input:focus-visible + .switch {
   padding: 20px 0 15px;
 }
 .today-label {
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 1.4px;
-  color: #91849f;
+  color: #7a6b8a;
   display: flex;
   justify-content: space-between;
 }
@@ -139,7 +139,7 @@ input:focus-visible + .switch {
   font-size: 15px;
   font-weight: 400;
   letter-spacing: 0;
-  color: #958b9f;
+  color: #786c83;
 }
 .sites {
   display: flex;
@@ -149,15 +149,15 @@ input:focus-visible + .switch {
 }
 .site {
   background: #ece7f5;
-  color: #7d639f;
-  font-size: 10px;
+  color: #775d98;
+  font-size: 12px;
   padding: 4px 7px;
   border-radius: 5px;
 }
 .privacy {
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.7;
-  color: #8d8299;
+  color: #776c84;
   border-top: 1px solid #e5dfee;
   padding-top: 16px;
   margin: 0 0 18px;
@@ -172,7 +172,7 @@ button {
 }
 .primary {
   border: 0;
-  background: #8770c7;
+  background: #7e65c3;
   color: white;
   width: 100%;
   border-radius: 9px;
@@ -190,16 +190,16 @@ button:disabled {
   cursor: wait;
 }
 .transfer {
-  color: #9a91a4;
+  color: #776d83;
   text-align: center;
-  font-size: 9px;
+  font-size: 12px;
   margin: 9px 12px 19px;
 }
 .footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 10px;
+  font-size: 12px;
 }
 .footer a {
   color: #796590;
@@ -209,11 +209,11 @@ button:disabled {
   background: none;
   border: 0;
   padding: 0;
-  font-size: 10px;
-  color: #9a8290;
+  font-size: 12px;
+  color: #846a79;
 }
 #notice {
-  font-size: 11px;
+  font-size: 12px;
   color: #775b9d;
   margin: 12px 0 0;
   min-height: 16px;

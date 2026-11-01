@@ -6,15 +6,15 @@ Orbit is a private, local-first AI-usage dashboard: a static Vite SPA in vanilla
 
 ## Current handoff
 
-- `feat/observed-ai-usage` includes fetched `origin/main` at `aaa4ff6`; merging main again reported already up to date, with no conflicts.
-- Extension v1.1.0 adds active time and observed send actions. These are not provider-confirmed successful replies, tokens, billing, or remaining limits. Unknown metrics stay unavailable.
-- 38 automated tests (13 data + 13 accounting + 9 worker + 3 observer) and the production build pass under Node 22. Browser fixtures passed; logged-in provider layouts and real-profile installation are not verified here.
-- The feature is pushed for review and is not confirmed deployed. `41fc42a` is only the last deployment reported by the imported audit. GitHub API restrictions prevented automatic PR creation.
-- Continue the user's current task; the audit sprint in `WORK_STATUS.md` is a backlog, not an instruction to switch tasks.
+- Live: `main` @ `5c223cd` (PR #5: observed AI usage, extension v1.1.0). GitHub Pages deploy run #6 succeeded.
+- Awaiting review, stacked (merge in order): `feature/sprint-1` (Sprint 1 + extension 1.1.1, 13/26 checks), then `feature/visual-polish` (chart, search, a11y, first run, demo story, brand assets, CSP; 23/26 checks, 51 tests). Check `git branch -r` for newer `feature/*` branches.
+- The extension records active time and observed send actions. These are not provider-confirmed successful replies, tokens, billing, or remaining limits. Unknown metrics stay unavailable. Logged-in provider layouts and real-profile installation are not verified in this sandbox.
+- Continue the user's current task; the backlog in `WORK_STATUS.md` §12 is not an instruction to switch tasks.
 
 ## Commands
 
-- `npm ci` · `npm test` (38 automated `node:test` tests) · `npm run build` · `npm run preview`
+- `npm ci` · `npm test` (51 automated `node:test` tests) · `npm run build` · `npm run preview`
+- Brand assets: `node scripts/generate-brand-assets.cjs` regenerates every PNG from the logo
 - Acceptance checks, one per audit ID: `npx vite preview --host 127.0.0.1 --port 4173 --strictPort &` then `node docs/audit/check.cjs [--only=A1,B3] [--strict]`
 
 ## Rules
@@ -22,8 +22,9 @@ Orbit is a private, local-first AI-usage dashboard: a static Vite SPA in vanilla
 - No network requests, analytics, accounts or servers. Data stays in `localStorage` or in files the user exports.
 - Pass every user string through `esc()` before `innerHTML`, and every stored or imported record through `validateSession()`.
 - Use the supported `node --test` command on Node >=22.12; do not reintroduce `--test-isolation=none`, which Node 22 rejects.
-- Pure logic belongs in `src/data.js` / `extension/core.js`, and each logic change gets a unit test.
+- Pure logic belongs in `src/data.js`, `src/format.js` (display formatters), `src/chart.js` (chart geometry) or `extension/core.js`, and each logic change gets a unit test.
 - `package.json` is ESM, so CommonJS scripts must be `.cjs`. Name Playwright specs `*.spec.js`, not `*.test.js`.
 - Hash routing: `href="#x"` for anything that isn't a view name re-routes to Overview. Use buttons for in-page jumps.
-- `renderContent()` rewrites `innerHTML`. Keep inputs outside re-rendered regions.
-- `main` auto-deploys to GitHub Pages, so work on a branch. After fixing an audit ID, run its check and update `WORK_STATUS.md` §2 and §12.
+- `renderContent()` rewrites `innerHTML`; filtering uses `updateResults()`, which only touches `[data-region]` containers. Never re-render the search input or provider select.
+- Production builds carry a CSP (`vite.config.js`): no inline scripts, no third-party origins.
+- `main` auto-deploys to GitHub Pages, so work on a branch named `feature/<name>` (the owner's convention). After fixing an audit ID, run its check and update `WORK_STATUS.md` §2 and §12.

@@ -35,7 +35,7 @@ An observed send action is a click, Enter press, or form submission on a recogni
 
 Extension records leave token and cost fields unavailable rather than treating them as zero. Token counts and costs shown for manual records are values you enter or estimates from those values. Cost estimates use illustrative provider rates. Enter a known cost per session to override the estimate. They are not a billing statement from an AI provider. Chat subscriptions and API usage are billed differently, and this website does not read your provider account or invoices.
 
-If you already installed extension 1.0, download the new ZIP and replace its files in the same extension folder. Click **Reload** in Chrome/Edge’s extension manager, refresh your open AI tabs, then enable tracking again. Updates pause tracking and retain recorded history. See the [update instructions](extension/README.md#update-an-existing-installation).
+If you already installed extension 1.0, download the new ZIP and replace its files in the same extension folder. Click **Reload** in Chrome/Edge’s extension manager, refresh your open AI tabs, then enable tracking again. Updating from 1.0 pauses tracking once and retains recorded history; later updates keep tracking on. See the [update instructions](extension/README.md#update-an-existing-installation).
 
 ## Host for free with GitHub Pages
 
