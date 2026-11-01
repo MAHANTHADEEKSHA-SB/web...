@@ -15,7 +15,15 @@ import {
   exportData,
   STORAGE_KEY,
 } from "./data.js";
-import { cellMoney, compact, duration, money, plural } from "./format.js";
+import {
+  cellMoney,
+  compact,
+  duration,
+  money,
+  plural,
+  shortDuration,
+} from "./format.js";
+import { monotoneSegments, niceScale, segmentsPath } from "./chart.js";
 
 const paths = {
   grid: '<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>',
@@ -99,6 +107,7 @@ const state = {
   personal: stored,
   demo: createDemoSessions(),
   showAll: false,
+  chartWidth: {}, // measured chart width per view, in CSS px
 };
 const all = () => (state.mode === "demo" ? state.demo : state.personal);
 const filtered = () =>
@@ -214,6 +223,116 @@ function statsHTML(items) {
     )
     .join("")}</div>`;
 }
+// ---- Usage chart --------------------------------------------------------
+// Drawn at the panel's real pixel width (1 SVG unit = 1 CSS px), so text never
+// shrinks and the plot never letterboxes; refits when the panel resizes.
+const CHART_METRICS = {
+  minutes: { option: "Time", legend: "Time with AI", axis: "minutes" },
+  messages: {
+    option: "Observed sends",
+    legend: "Observed send actions",
+    axis: "count",
+  },
+  tokens: {
+    option: "Logged tokens",
+    legend: "Manually logged tokens",
+    axis: "count",
+  },
+  sessions: { option: "Entries", legend: "Entries per day", axis: "count" },
+  cost: {
+    option: "Logged / estimated cost",
+    legend: "Estimated cost",
+    axis: "cost",
+  },
+};
+const chartValue = (metric, value) =>
+  value == null
+    ? "Not observed"
+    : metric === "minutes"
+      ? duration(value)
+      : metric === "messages"
+        ? plural(value, "send")
+        : metric === "tokens"
+          ? `${compact(value)} tokens`
+          : metric === "cost"
+            ? money(value)
+            : plural(value, "entry", "entries");
+const axisLabel = (metric, value) =>
+  metric === "minutes"
+    ? shortDuration(value)
+    : metric === "cost"
+      ? value === 0
+        ? "$0"
+        : money(value)
+      : compact(value);
+let chart = null; // { rows, metric, view, layout } for the chart on screen
+let chartObserver = null;
+function chartSummary() {
+  const { rows, metric } = chart;
+  const known = rows.filter((row) => row[metric] != null);
+  const name = CHART_METRICS[metric].legend;
+  if (!known.length) return `${name}: nothing recorded in this period.`;
+  const total = known.reduce((sum, row) => sum + row[metric], 0);
+  const peak = known.reduce((a, b) => (b[metric] > a[metric] ? b : a));
+  return `${name} per day over ${plural(rows.length, "day")}. Total ${chartValue(metric, total)}. Busiest: ${peak.label}, ${chartValue(metric, peak[metric])}. Use the arrow keys to read each day.`;
+}
+function chartSVG(width) {
+  const { rows, metric } = chart;
+  const W = Math.max(280, Math.round(width));
+  const H = W < 520 ? 196 : 216;
+  const [left, right, top, bottom] = [46, 16, 14, 30];
+  const values = rows.map((row) => row[metric]);
+  const known = values.filter((value) => value != null);
+  const scale = niceScale(Math.max(0, ...known), {
+    metric: CHART_METRICS[metric].axis,
+  });
+  const xs = rows.map(
+    (_, i) => left + (i * (W - left - right)) / Math.max(rows.length - 1, 1),
+  );
+  const y = (value) => H - bottom - (value / scale.max) * (H - top - bottom);
+  const points = values.map((value, i) => (value == null ? null : [xs[i], y(value)]));
+  const segments = monotoneSegments(points);
+  const last = rows.length - 1;
+  // Today is still in progress, so its segment is dashed rather than solid.
+  const solid = segmentsPath(segments.slice(0, -1));
+  const partial = segments.at(-1) ? segmentsPath([segments.at(-1)]) : "";
+  const area =
+    metric !== "messages" && known.length === rows.length
+      ? `${segmentsPath(segments)}L${xs[last].toFixed(1)},${H - bottom}L${xs[0].toFixed(1)},${H - bottom}Z`
+      : "";
+  const every = Math.max(1, Math.ceil(rows.length / (W < 520 ? 4 : 7)));
+  chart.layout = { xs, ys: points.map((point) => point?.[1] ?? null), top };
+  const grid = scale.ticks
+    .map(
+      (tick) =>
+        `<line class="chart-grid" x1="${left}" x2="${W - right}" y1="${y(tick).toFixed(1)}" y2="${y(tick).toFixed(1)}"/><text x="${left - 10}" y="${(y(tick) + 4).toFixed(1)}" text-anchor="end">${esc(axisLabel(metric, tick))}</text>`,
+    )
+    .join("");
+  const labels = rows
+    .map((row, i) =>
+      (last - i) % every === 0
+        ? `<text x="${xs[i].toFixed(1)}" y="${H - 8}" text-anchor="${i === last ? "end" : i === 0 ? "start" : "middle"}">${esc(row.label)}</text>`
+        : "",
+    )
+    .join("");
+  const dots =
+    metric === "messages"
+      ? points
+          .map((point) =>
+            point
+              ? `<circle class="chart-dot" cx="${point[0].toFixed(1)}" cy="${point[1].toFixed(1)}" r="3"/>`
+              : "",
+          )
+          .join("")
+      : "";
+  const today = points[last]
+    ? `<circle class="chart-today" cx="${points[last][0].toFixed(1)}" cy="${points[last][1].toFixed(1)}" r="4"/>`
+    : "";
+  const empty = known.length
+    ? ""
+    : `<text class="chart-empty" x="${W / 2}" y="${((H - bottom + top) / 2).toFixed(1)}" text-anchor="middle">${metric === "messages" ? "No observed sends in this period" : "Nothing recorded in this period"}</text>`;
+  return `<svg class="usage-chart" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" tabindex="0" aria-label="${esc(chartSummary())}"><defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8062d2" stop-opacity=".2"/><stop offset="100%" stop-color="#8062d2" stop-opacity="0"/></linearGradient></defs>${grid}${empty}${area ? `<path class="chart-area" d="${area}"/>` : ""}<path class="chart-line" d="${solid}"/>${partial ? `<path class="chart-line chart-partial" d="${partial}"/>` : ""}${dots}${today}<line class="chart-guide" x1="0" x2="0" y1="${top}" y2="${H - bottom}" visibility="hidden"/><circle class="chart-marker" r="5" visibility="hidden"/>${labels}</svg>`;
+}
 function chartHTML(items) {
   const dayCount =
     state.days ||
@@ -231,47 +350,115 @@ function chartHTML(items) {
         ) + 1,
       ),
     );
-  const rows = dailyUsage(items, dayCount);
-  const values = rows.map((r) => r[state.chart]);
-  const maximum = Math.max(...values, 1);
-  const max =
-    state.chart === "cost"
-      ? Math.max(0.1, Math.ceil(maximum * 10) / 10)
-      : Math.max(4, Math.ceil(maximum / 4) * 4);
-  const W = window.innerWidth < 760 ? 420 : 760,
-    H = 205,
-    left = 48,
-    right = 12,
-    top = 15,
-    bottom = 26;
-  const points = rows.map((r, i) =>
-    state.chart === "messages" && r.messages == null
-      ? null
-      : [
-          left + (i * (W - left - right)) / Math.max(rows.length - 1, 1),
-          H - bottom - (r[state.chart] / max) * (H - top - bottom),
-        ],
-  );
-  const line = points
-    .map((point, i) =>
-      point
-        ? `${i && points[i - 1] ? "L" : "M"}${point[0].toFixed(1)},${point[1].toFixed(1)}`
-        : "",
+  chart = {
+    rows: dailyUsage(items, dayCount),
+    metric: state.chart,
+    view: state.view,
+  };
+  const meta = CHART_METRICS[state.chart];
+  return `<article class="panel usage-panel"><div class="panel-heading"><div><h2>Usage over time</h2><p>A rhythm of curiosity and creation</p></div><select class="small-select" id="chart-metric" aria-label="Chart metric">${Object.entries(
+    CHART_METRICS,
+  )
+    .map(
+      ([value, metric]) =>
+        `<option value="${value}" ${state.chart === value ? "selected" : ""}>${metric.option}</option>`,
     )
-    .join(" ");
-  const area = `${line} L${W - right},${H - bottom} L${left},${H - bottom} Z`;
-  const every = Math.max(1, Math.floor(rows.length / 6));
-  return `<article class="panel usage-panel"><div class="panel-heading"><div><h2>Usage over time</h2><p>A rhythm of curiosity and creation</p></div><select class="small-select" id="chart-metric" aria-label="Chart metric"><option value="minutes" ${state.chart === "minutes" ? "selected" : ""}>Time</option><option value="messages" ${state.chart === "messages" ? "selected" : ""}>Observed sends</option><option value="tokens" ${state.chart === "tokens" ? "selected" : ""}>Logged tokens</option><option value="sessions" ${state.chart === "sessions" ? "selected" : ""}>Activity records</option><option value="cost" ${state.chart === "cost" ? "selected" : ""}>Logged / estimated cost</option></select></div><div class="chart-legend"><i></i>${state.chart === "messages" ? "Observed send actions" : state.chart === "tokens" ? "Manually logged tokens" : state.chart === "cost" ? "Estimated cost" : state.chart === "minutes" ? "Time in minutes" : "Activity records"}<span>${state.days ? "Last " + state.days + " days" : "Up to the last 90 days"}</span></div>
- <div class="chart-wrap"><svg class="usage-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily ${state.chart} over ${dayCount} days"><defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#9b83e9" stop-opacity=".28"/><stop offset="100%" stop-color="#9b83e9" stop-opacity=".02"/></linearGradient></defs>${[
-   0, 1, 2, 3, 4,
- ]
-   .map((i) => {
-     const y = top + (i * (H - top - bottom)) / 4;
-     return `<line x1="${left}" x2="${W - right}" y1="${y}" y2="${y}" stroke="#ececf1" stroke-dasharray="4 5"/><text x="${left - 12}" y="${y + 4}" text-anchor="end">${state.chart === "cost" ? money((max * (4 - i)) / 4) : compact((max * (4 - i)) / 4)}</text>`;
-   })
-   .join(
-     "",
-   )}${state.chart === "messages" && values.every((value) => value == null) ? `<text x="${W / 2}" y="${H / 2}" text-anchor="middle">No observed send data in this period</text>` : ""}<path d="${area}" fill="${state.chart === "messages" ? "none" : "url(#chart-fill)"}"/><path d="${line}" fill="none" stroke="#9476e2" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>${points.map((point, i) => (point ? `<circle class="chart-point ${state.chart === "messages" ? "observation-point" : ""}" cx="${point[0]}" cy="${point[1]}" r="5" fill="#9476e2"><title>${esc(rows[i].label)}: ${state.chart === "cost" ? money(values[i]) : values[i].toLocaleString()} ${state.chart === "cost" ? "USD" : state.chart}</title></circle>` : "")).join("")}${rows.map((r, i) => ((rows.length - 1 - i) % every === 0 ? `<text x="${left + (i * (W - left - right)) / Math.max(rows.length - 1, 1)}" y="${H - 3}" text-anchor="${i === rows.length - 1 ? "end" : "middle"}">${esc(r.label)}</text>` : "")).join("")}</svg></div><div class="chart-caption">${icon("spark")} ${state.chart === "messages" ? "Only observed dates are plotted; gaps are unavailable. Counts aren’t confirmed responses or remaining limits." : "Time is recorded from active tabs. Tokens and costs are only available when manually logged."}</div></article>`;
+    .join(
+      "",
+    )}</select></div><div class="chart-legend"><i></i>${meta.legend}<em class="chart-key">today so far</em><span>${state.days ? "Last " + state.days + " days" : "Up to the last 90 days"}</span></div>
+ <div class="chart-wrap">${chartSVG(state.chartWidth[state.view] ?? 760)}<div class="chart-tip" aria-hidden="true" hidden></div><p class="sr-only chart-live" aria-live="polite"></p></div><div class="chart-caption">${icon("spark")} ${state.chart === "messages" ? "Only observed dates are plotted; gaps are unavailable. Counts aren’t confirmed responses or remaining limits." : "Time is recorded from active tabs. Tokens and costs are only available when manually logged."}</div></article>`;
+}
+/** Fit the chart to its panel before first paint, follow resizes, and wire
+ * the hover / touch / keyboard read-out. */
+function mountChart() {
+  chartObserver?.disconnect();
+  const wrap = document.querySelector(".chart-wrap");
+  if (!wrap || !chart) return;
+  const tip = wrap.querySelector(".chart-tip");
+  const live = wrap.querySelector(".chart-live");
+  let index = null;
+  const hide = () => {
+    index = null;
+    tip.hidden = true;
+    const svg = wrap.querySelector("svg");
+    svg.querySelector(".chart-guide").setAttribute("visibility", "hidden");
+    svg.querySelector(".chart-marker").setAttribute("visibility", "hidden");
+  };
+  const fit = (width) => {
+    const w = Math.round(width);
+    if (Math.abs(w - (state.chartWidth[chart.view] ?? 0)) < 2) return;
+    state.chartWidth[chart.view] = w;
+    const focused = document.activeElement?.matches(".usage-chart");
+    wrap.querySelector("svg").outerHTML = chartSVG(w);
+    if (focused) wrap.querySelector("svg").focus();
+    hide();
+  };
+  const style = getComputedStyle(wrap);
+  fit(
+    wrap.clientWidth -
+      parseFloat(style.paddingLeft) -
+      parseFloat(style.paddingRight),
+  );
+  chartObserver = new ResizeObserver(([entry]) => fit(entry.contentRect.width));
+  chartObserver.observe(wrap);
+  const show = (i, announce = false) => {
+    const { xs, ys, top } = chart.layout;
+    index = Math.max(0, Math.min(xs.length - 1, i));
+    const row = chart.rows[index];
+    const value = row[chart.metric];
+    const svg = wrap.querySelector("svg");
+    const guide = svg.querySelector(".chart-guide");
+    guide.setAttribute("x1", xs[index]);
+    guide.setAttribute("x2", xs[index]);
+    guide.setAttribute("visibility", "visible");
+    const marker = svg.querySelector(".chart-marker");
+    if (ys[index] == null) marker.setAttribute("visibility", "hidden");
+    else {
+      marker.setAttribute("cx", xs[index]);
+      marker.setAttribute("cy", ys[index]);
+      marker.setAttribute("visibility", "visible");
+    }
+    const day = new Date(`${row.date}T00:00`).toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+    const soFar = index === chart.rows.length - 1 ? " · so far" : "";
+    tip.innerHTML = `<strong>${esc(chartValue(chart.metric, value))}</strong><span>${esc(day + soFar)}</span>`;
+    tip.hidden = false;
+    const x = parseFloat(getComputedStyle(wrap).paddingLeft) + xs[index];
+    const edge = Math.min(80, wrap.clientWidth / 2);
+    tip.style.left = `${Math.min(Math.max(x, edge), wrap.clientWidth - edge)}px`;
+    tip.style.top = `${ys[index] ?? top + 24}px`;
+    if (announce) live.textContent = `${day}${soFar}: ${chartValue(chart.metric, value)}`;
+  };
+  const nearest = (event) => {
+    const { xs } = chart.layout;
+    const x = event.clientX - wrap.querySelector("svg").getBoundingClientRect().left;
+    let best = 0;
+    for (let i = 1; i < xs.length; i += 1)
+      if (Math.abs(xs[i] - x) < Math.abs(xs[best] - x)) best = i;
+    return best;
+  };
+  wrap.addEventListener("pointermove", (event) => show(nearest(event)));
+  wrap.addEventListener("pointerdown", (event) => show(nearest(event)));
+  wrap.addEventListener("pointerleave", hide);
+  wrap.addEventListener("focusin", (event) => {
+    if (event.target.matches(".usage-chart"))
+      show(index ?? chart.rows.length - 1, true);
+  });
+  wrap.addEventListener("focusout", hide);
+  wrap.addEventListener("keydown", (event) => {
+    if (!event.target.matches(".usage-chart")) return;
+    const moves = { ArrowLeft: -1, ArrowRight: 1 };
+    if (event.key in moves) {
+      event.preventDefault();
+      show((index ?? chart.rows.length - 1) + moves[event.key], true);
+    } else if (event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      show(event.key === "Home" ? 0 : chart.rows.length - 1, true);
+    } else if (event.key === "Escape") hide();
+  });
 }
 function breakdownHTML(items) {
   const count = items.length;
@@ -338,6 +525,7 @@ function renderContent() {
  <div class="section-toolbar"><div class="section-label">${icon(state.view === "insights" ? "spark" : "grid")} ${state.view === "overview" ? "Your overview" : state.view === "insights" ? "The bigger picture" : "Session history"} <span class="light-dot">·</span><span class="period-label">${state.days ? "Last " + state.days + " days" : "All time"}</span></div>${periodControl()}</div>
  ${state.view === "overview" ? `${statsHTML(items)}<div class="charts-grid">${chartHTML(items)}${breakdownHTML(items)}</div>${tableHTML(items)}` : state.view === "sessions" ? tableHTML(items, true) : insightsHTML(items)}`;
   document.querySelectorAll("#content [data-action]").forEach(bindAction);
+  mountChart();
   document.querySelectorAll("[data-days]").forEach(
     (b) =>
       (b.onclick = () => {

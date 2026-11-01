@@ -2120,3 +2120,102 @@ input:disabled {
 .button.danger-solid:hover {
   background: #a01f35;
 }
+
+/* Usage chart (B3, N10): drawn at its real pixel width, smooth monotone line,
+   dashed "today so far" segment, and a hover / touch / keyboard read-out. */
+.chart-wrap {
+  position: relative;
+}
+.usage-chart {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  border-radius: 6px;
+  touch-action: pan-y;
+}
+.usage-chart text {
+  font-size: 12px;
+  fill: #756e80;
+}
+.usage-chart:focus {
+  outline: none;
+}
+.usage-chart:focus-visible {
+  outline: 2px solid #8062d2;
+  outline-offset: 6px;
+}
+.chart-grid {
+  stroke: #eceaf1;
+  stroke-dasharray: 3 5;
+}
+.chart-area {
+  fill: url(#chart-fill);
+}
+.chart-line {
+  fill: none;
+  stroke: #8062d2;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.chart-partial {
+  stroke-dasharray: 2 6;
+  opacity: 0.75;
+}
+.chart-dot {
+  fill: #8062d2;
+}
+.chart-today {
+  fill: #fff;
+  stroke: #8062d2;
+  stroke-width: 2;
+}
+.chart-guide {
+  stroke: #b9aee0;
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.chart-marker {
+  fill: #fff;
+  stroke: #8062d2;
+  stroke-width: 2.5;
+}
+.chart-empty {
+  font-size: 13px;
+}
+.chart-tip {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, calc(-100% - 14px));
+  padding: 7px 11px;
+  border-radius: 9px;
+  background: #2f2540;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 10px 24px #2f254033;
+}
+.chart-tip strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+.chart-tip span {
+  color: #d9d0ee;
+}
+.chart-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 14px;
+  font-style: normal;
+}
+.chart-key::before {
+  content: "";
+  width: 16px;
+  border-top: 2px dashed #8062d2;
+  opacity: 0.75;
+}

@@ -6,6 +6,7 @@ import {
   duration,
   money,
   plural,
+  shortDuration,
 } from "../src/format.js";
 
 test("plural inflects singular counts and keeps thousands separators", () => {
@@ -40,4 +41,12 @@ test("compact abbreviates large counts", () => {
   assert.equal(compact(522), "522");
   assert.equal(compact(17200), "17.2K");
   assert.equal(compact(1400000), "1.4M");
+});
+
+test("shortDuration keeps axis labels short", () => {
+  assert.equal(shortDuration(0), "0");
+  assert.equal(shortDuration(45), "45m");
+  assert.equal(shortDuration(60), "1h");
+  assert.equal(shortDuration(75), "1h 15m");
+  assert.equal(shortDuration(240), "4h");
 });

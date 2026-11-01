@@ -37,3 +37,12 @@ export function duration(n) {
 export function plural(count, one, many = `${one}s`) {
   return `${Number(count).toLocaleString("en-US")} ${count === 1 ? one : many}`;
 }
+
+/** Compact axis labels for minutes: "0", "45m", "1h", "1h 15m". */
+export function shortDuration(minutes) {
+  const m = Math.round(minutes);
+  if (m === 0) return "0";
+  if (m < 60) return `${m}m`;
+  const rest = m % 60;
+  return rest ? `${Math.floor(m / 60)}h ${rest}m` : `${m / 60}h`;
+}
