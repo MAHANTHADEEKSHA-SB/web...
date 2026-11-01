@@ -2238,3 +2238,72 @@ input:disabled {
     padding-bottom: 20px;
   }
 }
+
+/* C7: skip link (a button, because hash links would re-route). */
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  z-index: 60;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: #2f2540;
+  color: #fff;
+  font-size: 13px;
+  transform: translate(-50%, -160%);
+  transition: transform 0.15s;
+}
+.skip-link:focus-visible {
+  /* Top-centre, so it never covers the menu button or avatar. */
+  transform: translate(-50%, 0);
+}
+#main h1:focus {
+  outline: none;
+}
+
+/* Workspace card is now an honest switcher between demo and personal data. */
+.workspace {
+  width: 100%;
+  margin: 29px 0;
+  padding: 6px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.workspace:hover {
+  background: #f7f5fb;
+}
+.workspace-switch {
+  margin-left: auto;
+  color: #8062d2;
+}
+.workspace-switch .icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* B4: the closed drawer is hidden from keyboard and screen readers, and an
+   open drawer dims the page behind it. */
+@media (max-width: 760px) {
+  .sidebar {
+    visibility: hidden;
+    transition:
+      transform 0.2s,
+      visibility 0s linear 0.2s;
+  }
+  .sidebar.is-open {
+    visibility: visible;
+    transition: transform 0.2s;
+  }
+  .sidebar.is-open + .main-shell::after {
+    content: "";
+    position: fixed;
+    inset: 65px 0 0;
+    z-index: 19;
+    background: #2f253b38;
+  }
+}

@@ -56,6 +56,7 @@ const paths = {
     '<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z"/>',
   globe:
     '<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/>',
+  swap: '<path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4m4 4H7"/>',
 };
 const icon = (name, cls = "") =>
   `<svg class="icon ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.spark}</svg>`;
@@ -157,25 +158,28 @@ function persist(next) {
     return false;
   }
 }
+const VIEW_TITLES = {
+  overview: "Overview",
+  sessions: "Sessions",
+  insights: "Insights",
+  settings: "Settings",
+};
 function shell() {
-  const titles = {
-    overview: "Overview",
-    sessions: "Sessions",
-    insights: "Insights",
-    settings: "Settings",
-  };
+  const titles = VIEW_TITLES;
+  const demo = state.mode === "demo";
   document.querySelector("#app").innerHTML = `
+ <button class="skip-link" data-action="skip">Skip to content</button>
  <aside class="sidebar" id="sidebar"><a class="brand" href="#overview" aria-label="Orbit overview"><span class="orbit-symbol"><i></i></span>orbit<span class="brand-dot">.</span></a>
- <div class="workspace"><span class="workspace-icon">${icon("spark")}</span><div>Personal workspace<small>Make space for your ideas</small></div><span class="workspace-chevron">${icon("down")}</span></div>
+ <button class="workspace" data-action="${demo ? "personal" : "demo"}" title="${demo ? "Start your own private orbit" : "Explore the demo workspace"}"><span class="workspace-icon">${icon("spark")}</span><div>${demo ? "Demo workspace" : "Personal workspace"}<small>${demo ? "Sample data · switch to yours" : "Saved only in this browser"}</small></div><span class="workspace-switch">${icon("swap")}</span></button>
  <div class="nav-label">WORKSPACE</div><nav>${Object.entries(titles)
    .map(
      ([id, label], i) =>
-       `<a href="#${id}" class="nav-item ${state.view === id ? "active" : ""}">${icon(["grid", "history", "chart", "settings"][i])}<span>${label}</span>${id === "overview" ? '<span class="nav-dot"></span>' : ""}</a>`,
+       `<a href="#${id}" class="nav-item ${state.view === id ? "active" : ""}"${state.view === id ? ' aria-current="page"' : ""}>${icon(["grid", "history", "chart", "settings"][i])}<span>${label}</span>${id === "overview" ? '<span class="nav-dot"></span>' : ""}</a>`,
    )
    .join("")}</nav>
  <div class="sidebar-bottom"><div class="local-card"><span class="local-icon">${icon("lock")}</span><strong>Your data. Your orbit.</strong><p>Private by design.<br>Saved only in this browser.</p><a href="#settings">Manage your data ${icon("arrow")}</a></div><div class="profile"><span class="avatar">Y</span><div>Your workspace<small>Personal · Free forever</small></div><span class="online-dot"></span></div></div></aside>
- <div class="main-shell"><header class="topbar"><div class="breadcrumb"><button class="icon-btn mobile-menu" aria-label="Toggle navigation" data-action="menu">${icon("menu")}</button><span>Workspace</span><span class="slash">/</span><strong>${titles[state.view]}</strong></div><div class="topbar-right"><span class="privacy-status"><i></i> Local & private</span><button class="top-avatar" data-action="settings" aria-label="Open settings">Y</button></div></header>
- <main id="main"><div class="page-heading"><div class="eyebrow">A LITTLE CLARITY FOR YOUR AI LIFE</div><div class="heading-row"><div><h1>${{ overview: "Your AI, in perspective.", sessions: "Every session, in one place.", insights: "Make sense of your habits.", settings: "A space that’s yours." }[state.view]}</h1><p class="subtitle">${{ overview: "A mindful look at the tools powering your everyday.", sessions: "The prompts, projects, and little breakthroughs along the way.", insights: "Discover where your time and creativity go.", settings: "Your preferences, your data, your control." }[state.view]}</p></div><div class="heading-actions"><button class="button secondary" data-action="export">${icon("download")}<span>Export</span></button><button class="button primary" data-action="add">${icon("plus")} Log session</button></div></div></div>
+ <div class="main-shell"><header class="topbar"><div class="breadcrumb"><button class="icon-btn mobile-menu" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false" data-action="menu">${icon("menu")}</button><span>Workspace</span><span class="slash">/</span><strong>${titles[state.view]}</strong></div><div class="topbar-right"><span class="privacy-status"><i></i> Local & private</span><button class="top-avatar" data-action="settings" aria-label="Open settings">Y</button></div></header>
+ <main id="main"><div class="page-heading"><div class="eyebrow">A LITTLE CLARITY FOR YOUR AI LIFE</div><div class="heading-row"><div><h1 tabindex="-1">${{ overview: "Your AI, in perspective.", sessions: "Every session, in one place.", insights: "Make sense of your habits.", settings: "A space that’s yours." }[state.view]}</h1><p class="subtitle">${{ overview: "A mindful look at the tools powering your everyday.", sessions: "The prompts, projects, and little breakthroughs along the way.", insights: "Discover where your time and creativity go.", settings: "Your preferences, your data, your control." }[state.view]}</p></div><div class="heading-actions"><button class="button secondary" data-action="export">${icon("download")}<span>Export</span></button><button class="button primary" data-action="add">${icon("plus")} Log session</button></div></div></div>
  ${storageError ? `<div class="error-banner" role="alert">${esc(storageError)} Export any accessible data before changing browser storage.</div>` : ""}
  ${state.mode === "demo" ? `<div class="demo-banner"><span>${icon("spark")} <strong>A little inspiration.</strong> You’re exploring sample data.</span><button data-action="personal">Start my own orbit ${icon("arrow")}</button></div>` : ""}
  ${state.mode === "personal" && state.view === "overview" ? `<div class="tracking-banner"><span>${icon("clock")} <strong>Make time for your ideas.</strong> Track active AI time and observed send actions.</span><a href="#settings">Set up tracking ${icon("arrow")}</a></div>` : ""}<div id="content"></div>
@@ -183,7 +187,7 @@ function shell() {
   document.querySelectorAll("[data-action]").forEach(bindAction);
 }
 function periodControl() {
-  return `<div class="period-control" role="group" aria-label="Date range">${[7, 30, 90, 0].map((n) => `<button data-days="${n}" class="${state.days === n ? "selected" : ""}">${n ? n + " days" : "All time"}</button>`).join("")}</div>`;
+  return `<div class="period-control" role="group" aria-label="Date range">${[7, 30, 90, 0].map((n) => `<button data-days="${n}" class="${state.days === n ? "selected" : ""}" aria-pressed="${state.days === n}">${n ? n + " days" : "All time"}</button>`).join("")}</div>`;
 }
 function statsHTML(items) {
   const s = summarize(items);
@@ -639,6 +643,7 @@ function render() {
   shell();
   renderContent();
 }
+let firstRoute = true;
 function navigate() {
   const view = location.hash.slice(1);
   state.view = ["overview", "sessions", "insights", "settings"].includes(view)
@@ -647,6 +652,16 @@ function navigate() {
   state.query = "";
   state.provider = "all";
   render();
+  document.title =
+    state.view === "overview"
+      ? "Orbit — Your AI, in perspective"
+      : `${VIEW_TITLES[state.view]} · Orbit`;
+  if (!firstRoute) {
+    // Announce the new view to screen readers and start it at the top.
+    window.scrollTo(0, 0);
+    document.querySelector("#main h1")?.focus({ preventScroll: true });
+  }
+  firstRoute = false;
 }
 window.addEventListener("hashchange", navigate);
 function bindAction(button) {
@@ -674,12 +689,36 @@ function bindAction(button) {
         location.hash = "settings";
       },
       menu: () =>
-        document.querySelector("#sidebar").classList.toggle("is-open"),
+        setDrawer(!document.querySelector("#sidebar").classList.contains("is-open")),
+      skip: () => document.querySelector("#main h1")?.focus(),
       clear: clearPersonal,
     };
     actions[button.dataset.action]?.();
   };
 }
+function setDrawer(open) {
+  const sidebar = document.querySelector("#sidebar");
+  if (!sidebar) return;
+  sidebar.classList.toggle("is-open", open);
+  document
+    .querySelector(".mobile-menu")
+    ?.setAttribute("aria-expanded", String(open));
+  if (open) sidebar.querySelector(".nav-item.active")?.focus();
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape" || !document.querySelector("#sidebar.is-open")) return;
+  setDrawer(false);
+  document.querySelector(".mobile-menu")?.focus();
+});
+document.addEventListener("click", (e) => {
+  const sidebar = document.querySelector("#sidebar");
+  if (
+    sidebar?.classList.contains("is-open") &&
+    !sidebar.contains(e.target) &&
+    !e.target.closest(".mobile-menu")
+  )
+    setDrawer(false);
+});
 function dateValue(date = new Date()) {
   const d = new Date(date);
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
@@ -689,7 +728,7 @@ function dateValue(date = new Date()) {
 function openSession(session) {
   const dialog = document.querySelector("#session-dialog");
   const p = session?.provider || "claude";
-  dialog.innerHTML = `<form id="session-form"><div class="modal-header"><span class="settings-icon violet">${icon("spark")}</span><button type="button" class="icon-btn" data-close aria-label="Close">${icon("x")}</button></div><h2>${session ? "A little fine-tuning." : "What did you create today?"}</h2><p class="modal-subtitle">${state.mode === "demo" ? (session ? "You’re editing sample data. Changes disappear when you reload." : "Saving this starts your own private orbit. The sample data stays untouched.") : "Every session is a small step toward something."}</p><label>Session title<input name="title" required maxlength="120" placeholder="e.g. Brainstorming my next big idea" value="${esc(session?.title || "")}" autofocus /></label><div class="form-grid"><label>AI tool<select name="provider">${PROVIDERS.map((x) => `<option value="${x.id}" ${p === x.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label><label>Activity<select name="category">${["Writing", "Coding", "Research", "Learning", "Other"].map((c) => `<option ${session?.category === c ? "selected" : ""}>${c}</option>`).join("")}</select></label><label>Date & time<input name="date" type="datetime-local" required max="${dateValue()}" value="${dateValue(session?.date)}" /></label><label>Duration (minutes)<span class="unit-input"><input name="duration" aria-label="Duration (minutes)" type="number" min="0" max="1440" step="any" value="${session?.duration ?? ""}" placeholder="e.g. 20" /><span aria-hidden="true">min</span></span></label></div><details ${session && (session.inputTokens || session.outputTokens || session.cost) ? "open" : ""}><summary>Tokens, model & cost <span>Optional</span></summary><label>Model<input name="model" maxlength="80" placeholder="e.g. Claude Sonnet" value="${esc(session?.model || "")}" /></label><div class="form-grid"><label>Input tokens<span class="unit-input"><input name="inputTokens" aria-label="Input tokens" type="number" min="0" step="1" value="${session?.inputTokens ?? ""}" placeholder="e.g. 1500" aria-describedby="token-help input-token-help" /><span aria-hidden="true">tokens</span></span><small class="field-help" id="input-token-help">Text sent to the AI, including context.</small></label><label>Output tokens<span class="unit-input"><input name="outputTokens" aria-label="Output tokens" type="number" min="0" step="1" value="${session?.outputTokens ?? ""}" placeholder="e.g. 500" aria-describedby="token-help output-token-help" /><span aria-hidden="true">tokens</span></span><small class="field-help" id="output-token-help">Text generated in the AI’s reply.</small></label></div><p class="fine-print" id="token-help">Enter whole token counts, not words or thousands: enter 1500 for 1.5k tokens. Use your provider’s usage report if available, or leave blank. The extension tracks time and observed send actions, not token counts.</p><label>Cost (USD)<span class="unit-input"><input name="cost" aria-label="Cost (USD)" type="number" min="0" step="any" value="${session?.cost ?? ""}" placeholder="Estimated if left blank" /><span aria-hidden="true">USD</span></span></label><p class="fine-print" id="cost-hint">Optional estimate; this isn’t your subscription bill. Leave tokens empty if you don’t know them.</p></details><p id="form-error" class="form-error" role="alert"></p><div class="modal-footer"><button type="button" class="button secondary" data-close>Cancel</button><button class="button primary" type="submit">${icon("check")} ${session ? "Save changes" : "Save session"}</button></div></form>`;
+  dialog.innerHTML = `<form id="session-form"><div class="modal-header"><span class="settings-icon violet">${icon("spark")}</span><button type="button" class="icon-btn" data-close aria-label="Close">${icon("x")}</button></div><h2 id="session-dialog-title">${session ? "A little fine-tuning." : "What did you create today?"}</h2><p class="modal-subtitle">${state.mode === "demo" ? (session ? "You’re editing sample data. Changes disappear when you reload." : "Saving this starts your own private orbit. The sample data stays untouched.") : "Every session is a small step toward something."}</p><label>Session title<input name="title" required maxlength="120" placeholder="e.g. Brainstorming my next big idea" value="${esc(session?.title || "")}" autofocus /></label><div class="form-grid"><label>AI tool<select name="provider">${PROVIDERS.map((x) => `<option value="${x.id}" ${p === x.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label><label>Activity<select name="category">${["Writing", "Coding", "Research", "Learning", "Other"].map((c) => `<option ${session?.category === c ? "selected" : ""}>${c}</option>`).join("")}</select></label><label>Date & time<input name="date" type="datetime-local" required max="${dateValue()}" value="${dateValue(session?.date)}" /></label><label>Duration (minutes)<span class="unit-input"><input name="duration" aria-label="Duration (minutes)" type="number" min="0" max="1440" step="any" value="${session?.duration ?? ""}" placeholder="e.g. 20" /><span aria-hidden="true">min</span></span></label></div><details ${session && (session.inputTokens || session.outputTokens || session.cost) ? "open" : ""}><summary>Tokens, model & cost <span>Optional</span></summary><label>Model<input name="model" maxlength="80" placeholder="e.g. Claude Sonnet" value="${esc(session?.model || "")}" /></label><div class="form-grid"><label>Input tokens<span class="unit-input"><input name="inputTokens" aria-label="Input tokens" type="number" min="0" step="1" value="${session?.inputTokens ?? ""}" placeholder="e.g. 1500" aria-describedby="token-help input-token-help" /><span aria-hidden="true">tokens</span></span><small class="field-help" id="input-token-help">Text sent to the AI, including context.</small></label><label>Output tokens<span class="unit-input"><input name="outputTokens" aria-label="Output tokens" type="number" min="0" step="1" value="${session?.outputTokens ?? ""}" placeholder="e.g. 500" aria-describedby="token-help output-token-help" /><span aria-hidden="true">tokens</span></span><small class="field-help" id="output-token-help">Text generated in the AI’s reply.</small></label></div><p class="fine-print" id="token-help">Enter whole token counts, not words or thousands: enter 1500 for 1.5k tokens. Use your provider’s usage report if available, or leave blank. The extension tracks time and observed send actions, not token counts.</p><label>Cost (USD)<span class="unit-input"><input name="cost" aria-label="Cost (USD)" type="number" min="0" step="any" value="${session?.cost ?? ""}" placeholder="Estimated if left blank" /><span aria-hidden="true">USD</span></span></label><p class="fine-print" id="cost-hint">Optional estimate; this isn’t your subscription bill. Leave tokens empty if you don’t know them.</p></details><p id="form-error" class="form-error" role="alert"></p><div class="modal-footer"><button type="button" class="button secondary" data-close>Cancel</button><button class="button primary" type="submit">${icon("check")} ${session ? "Save changes" : "Save session"}</button></div></form>`;
   dialog
     .querySelectorAll("[data-close]")
     .forEach((b) => (b.onclick = () => dialog.close()));
@@ -739,6 +778,8 @@ function openSession(session) {
       dialog.close();
       if (toPersonal) setMode("personal");
       else renderContent();
+      if (session)
+        document.querySelector(`[data-edit="${CSS.escape(item.id)}"]`)?.focus();
       toast(
         toPersonal
           ? "Saved to your own orbit. The sample data is untouched."
@@ -754,7 +795,7 @@ function openSession(session) {
 }
 function confirmAction(title, message, label, fn, tone = "primary") {
   const d = document.querySelector("#confirm-dialog");
-  d.innerHTML = `<div class="confirm-content"><h2>${esc(title)}</h2><p>${esc(message)}</p><div class="modal-footer"><button class="button secondary" id="cancel-confirm">Cancel</button><button class="button ${tone}" id="accept-confirm">${esc(label)}</button></div></div>`;
+  d.innerHTML = `<div class="confirm-content"><h2 id="confirm-dialog-title">${esc(title)}</h2><p id="confirm-dialog-message">${esc(message)}</p><div class="modal-footer"><button class="button secondary" id="cancel-confirm">Cancel</button><button class="button ${tone}" id="accept-confirm">${esc(label)}</button></div></div>`;
   d.querySelector("#cancel-confirm").onclick = () => d.close();
   d.querySelector("#accept-confirm").onclick = () => {
     d.close();
@@ -763,6 +804,9 @@ function confirmAction(title, message, label, fn, tone = "primary") {
   d.showModal();
 }
 function deleteSession(id) {
+  const index = [...document.querySelectorAll("[data-delete]")].findIndex(
+    (b) => b.dataset.delete === id,
+  );
   confirmAction(
     "Remove this session?",
     "This will remove the session from this workspace.",
@@ -772,6 +816,9 @@ function deleteSession(id) {
       if (state.mode === "personal" && !persist(next)) return;
       if (state.mode === "demo") state.demo = next;
       renderContent();
+      // The deleted row's button is gone; move focus to its neighbour.
+      const rows = [...document.querySelectorAll("[data-delete]")];
+      (rows[Math.min(index, rows.length - 1)] ?? document.querySelector("#main h1"))?.focus();
       toast("Session removed.");
     },
     "danger-solid",
