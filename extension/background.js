@@ -65,7 +65,11 @@ async function sample({ resetCursor = false } = {}) {
   return state;
 }
 async function ensureAlarm() {
-  await chrome.alarms.create(ALARM, { periodInMinutes: 0.5 });
+  // Creating an alarm that already exists replaces it and restarts its
+  // period, so the popup's 5-second status polls would keep postponing the
+  // 30-second sample. Only create it when it is missing.
+  if (!(await chrome.alarms.get(ALARM)))
+    await chrome.alarms.create(ALARM, { periodInMinutes: 0.5 });
   chrome.idle.setDetectionInterval(60);
 }
 function enqueueSample(options) {
