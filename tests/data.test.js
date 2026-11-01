@@ -254,6 +254,11 @@ test("storage round trips; corrupt data is preserved and storage failures remain
   const sessions = [validateSession(example())];
   saveSessions(sessions, storage);
   assert.deepEqual(loadSessions(storage), sessions);
+  assert.ok(
+    !data.get(STORAGE_KEY).includes("\n"),
+    "storage uses compact JSON; only downloads are indented",
+  );
+  assert.ok(exportData(sessions).includes("\n  "));
   data.set(STORAGE_KEY, "broken");
   assert.throws(() => loadSessions(storage), /preserved/);
   assert.equal(data.get(STORAGE_KEY), "broken");

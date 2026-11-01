@@ -310,7 +310,8 @@ export function parseImport(json) {
   return normalizeCollection(parsed.sessions);
 }
 
-export function exportData(sessions) {
+/** Serialize validated sessions; `pretty` indents for human-readable files. */
+function serializeSessions(sessions, pretty) {
   return JSON.stringify(
     {
       version: 1,
@@ -318,8 +319,13 @@ export function exportData(sessions) {
       sessions: normalizeCollection(sessions),
     },
     null,
-    2,
+    pretty ? 2 : undefined,
   );
+}
+
+/** Downloadable backup: indented so people can read it. */
+export function exportData(sessions) {
+  return serializeSessions(sessions, true);
 }
 
 export function loadSessions(storage = globalThis.localStorage) {
@@ -342,7 +348,8 @@ export function loadSessions(storage = globalThis.localStorage) {
 }
 
 export function saveSessions(sessions, storage = globalThis.localStorage) {
-  const json = exportData(sessions);
+  // Compact JSON: ~30% smaller than the indented export (C1).
+  const json = serializeSessions(sessions, false);
   try {
     storage.setItem(STORAGE_KEY, json);
   } catch {
