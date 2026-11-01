@@ -1,12 +1,12 @@
 # Orbit: notes for Claude
 
-Orbit is a private, local-first AI-usage dashboard: a static Vite SPA in vanilla JS with no framework and no backend. An optional MV3 Chrome/Edge extension tracks active time on AI sites.
+Orbit is a private, local-first AI-usage dashboard: a static Vite SPA in vanilla JS with no framework and no backend. An optional MV3 Chrome/Edge extension tracks active time and observed send actions on AI sites without reading message text.
 
 **Start here:** [`WORK_STATUS.md`](WORK_STATUS.md) covers status, architecture, invariants, gotchas and next steps. [`AUDIT.md`](AUDIT.md) has the findings with exact fixes (IDs A1–A5, B1–B15, C1–C14, E1–E9, roadmap D1–D14).
 
 ## Commands
 
-- `npm ci` · `npm test` (21 `node:test` unit tests) · `npm run build` · `npm run preview`
+- `npm ci` · `npm test` (38 automated `node:test` tests on the observed-usage feature branch) · `npm run build` · `npm run preview`
 - Acceptance checks, one per audit ID: `npx vite preview --host 127.0.0.1 --port 4173 --strictPort &` then `node docs/audit/check.cjs [--only=A1,B3] [--strict]`
 
 ## Rules

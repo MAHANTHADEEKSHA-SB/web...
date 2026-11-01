@@ -1,7 +1,7 @@
 # Orbit — Work Status & Handoff
 
 > **Last updated:** 2026-11-01 · **Live:** `main` @ `41fc42a` (GitHub Pages deploy run #4 ✅)
-> **This branch:** `claude/adoring-dijkstra-l4t0gm`. It adds the audit and these docs only. **No application code was changed.**
+> **Current feature branch:** `feat/observed-ai-usage` adds extension v1.1.0 active-time + observed-send recording and separates observations from unavailable token/billing data. It includes the previously merged audit/handoff files. This feature is not yet confirmed deployed.
 > **Read next:** [`AUDIT.md`](AUDIT.md) (findings with exact fixes) · [`docs/audit/check.cjs`](docs/audit/check.cjs) (26 acceptance checks)
 
 ---
@@ -12,7 +12,7 @@
 or import time measured by an optional Chrome/Edge extension, then explore totals, a usage chart, your "AI mix", and insights.
 There is no backend, account or API key. Data lives in the browser's `localStorage`, with JSON/CSV export as the backup path. It is a static Vite site deployed to GitHub Pages.
 
-**Where things stand:** v1.0.0 is live and healthy (21/21 unit tests, Lighthouse Performance 100, 0 console errors).
+**Baseline:** v1.0.0 was reported live and healthy at `41fc42a` (21/21 unit tests, Lighthouse Performance 100, 0 console errors). The current feature branch has 38 passing automated tests under Node 22, a passing production build, and targeted browser checks for provider-control fixtures and dashboard imports. This does not establish live provider selector coverage or a new deployed build.
 A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs, 14 code-health items and 9 extension items**, plus a 14-item feature roadmap.
 **None are fixed yet.** The recommended next step is **Sprint 1** in [§12](#12-next-steps): about 1 day of mostly XS fixes, several pre-verified.
 
@@ -33,7 +33,8 @@ A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs
 | Durability (Safari 7-day eviction, shared origin, backups) | ❌ Unaddressed | **A5** |
 | Accessibility | ⚠️ A11y 94–96 | **B8** contrast (35 pairs) · **B9** 82% of text < 12px · **B4** · **B10** · **C7** |
 | Mobile / tablet layout | ⚠️ | **B4**–**B7** (CSS for B5–B7 pre-verified) |
-| Unit tests (`node --test`) | ✅ 21/21 | `src/data.js` + `extension/core.js` only |
+| Automated tests (`node --test`) | ✅ 38/38 on feature branch | Data, time/send accounting, control observations, mocked service-worker integration |
+| Observed AI activity | ✅ Prepared on feature branch | Active time + observed submissions; old counts and unmeasured tokens/cost remain unavailable. Not provider-confirmed usage or remaining limits. |
 | UI / E2E tests | ❌ None | **C12** |
 | CI on pull requests | ❌ None (deploy workflow only) | **C12** |
 | Deploy (GitHub Actions → Pages) | ✅ Runs #3, #4 succeeded | On push to `main` |
@@ -108,8 +109,10 @@ A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs
 | `title` | string 1–140 | Required (form allows 120) |
 | `date` | ISO string | Calendar-validated; date-only = local midnight |
 | `duration` | minutes (float ≥ 0) | Form max 1440 |
-| `inputTokens`, `outputTokens` | integers ≥ 0 | Optional |
-| `cost` | USD float ≥ 0 | Defaults to the illustrative estimate |
+| `source` | `"manual"` or `"extension"` | Existing extension ID prefixes also identify tracked records |
+| `messageCount` | integer ≥ 0 or `null` | Observed send actions only; unavailable for historical/manual records |
+| `inputTokens`, `outputTokens` | integers ≥ 0 or `null` | Manual values; extension records use `null` for unavailable |
+| `cost` | USD float ≥ 0 or `null` | Manual values default to an illustrative estimate; extension records use `null` |
 | `category` | `Writing \| Coding \| Research \| Learning \| Other` | |
 
 **Export envelope:** `{ version: 1, exportedAt, sessions: [...] }`. The extension adds `source: "orbit-extension"`. A bare array of sessions also imports.
@@ -130,7 +133,7 @@ A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs
 ```bash
 npm ci                 # Node >= 22.12
 npm run dev            # Vite dev server on 0.0.0.0 (packages the extension first)
-npm test               # node --test -> 21 unit tests
+npm test               # node --test -> 38 automated tests on the feature branch
 npm run build          # -> dist/ (relative base, works on a Pages sub-path)
 npm run preview
 ```
@@ -158,7 +161,7 @@ They need `playwright` (preinstalled in Claude Code cloud sessions; locally `npm
 
 ## 9. Invariants (don't break these)
 
-1. **Privacy promise:** no backend, network requests, analytics, accounts or third-party scripts. Everything works offline. The extension never reads page content, titles or URLs beyond the hostname.
+1. **Privacy promise:** no backend, network requests, analytics, accounts or third-party scripts. Everything works offline. The extension never reads prompt/reply values or titles and retains no URLs beyond the hostname. With explicit opt-in, v1.1.0 inspects supported send-control attributes and trusted click/keyboard/submit events without storing message text.
 2. Every user-controlled string interpolated into HTML goes through `esc()` (`src/main.js:50`).
 3. Every stored or imported record passes `validateSession()`, and storage failures never overwrite unreadable data.
 4. Pure logic lives in `src/data.js` / `extension/core.js` and is covered by `node:test`. Add a test with each logic change.
@@ -198,6 +201,11 @@ The full list with evidence and exact fixes is in [`AUDIT.md`](AUDIT.md). Index:
 ---
 
 ## 12. Next steps
+
+**Prepared feature: observed AI activity (`feat/observed-ai-usage`).** Review/merge the feature, then let Pages deploy. Download the new v1.1.0 extension ZIP, replace files in the existing folder, Reload the extension, refresh AI tabs, and enable **Track AI time & sends**. Updates intentionally pause tracking and preserve existing history. Export/import remains the transfer flow; one-click sync (D1) is still outstanding.
+
+Validation: 38 automated tests and production build pass under Node 22. Browser fixtures cover trusted sends, pause, Stop controls, and no prompt-text retention across ChatGPT/Claude/Gemini/Perplexity/Copilot; production dashboard checks cover observed/unknown imports, chart gaps, edits, persistence, mobile width, and ZIP contents. Logged-in provider layouts and installation in a real user profile remain unverified here. Audit baseline checks were not rerun for this feature; no audit ID is claimed fixed. The existing audit backlog below remains applicable.
+
 
 **Sprint 1, "stop data loss, make it readable" (~1 day).** For each item: implement it, then run `npm test && npm run build && node docs/audit/check.cjs --only=<ID>`.
 
