@@ -433,21 +433,19 @@ function openSession(session) {
     .querySelectorAll("[data-close]")
     .forEach((b) => (b.onclick = () => dialog.close()));
   const form = dialog.querySelector("form");
-  if (
+  const tracked =
     session?.source === "extension" ||
-    session?.id.startsWith("orbit-extension-")
-  ) {
+    session?.id.startsWith("orbit-extension-");
+  if (tracked) {
     for (const name of ["inputTokens", "outputTokens", "cost"])
       form.elements[name].disabled = true;
     dialog.querySelector("#cost-hint").textContent =
       "Browser records do not measure tokens, billing, or remaining limits. These fields are unavailable.";
   }
   form.addEventListener("input", () => {
-    if (
-      session?.source === "extension" ||
-      session?.id.startsWith("orbit-extension-")
-    )
-      return;
+    // Unsaved edits block light dismissal (see the dialog handlers below).
+    form.dataset.dirty = "true";
+    if (tracked) return;
     const f = new FormData(form);
     dialog.querySelector("#cost-hint").textContent =
       `Illustrative token estimate: ${money(calculateCost(f.get("provider"), Math.min(1e12, Math.max(0, Number(f.get("inputTokens")) || 0)), Math.min(1e12, Math.max(0, Number(f.get("outputTokens")) || 0))))}. Enter 0 for subscription chats with no additional charge.`;
@@ -612,18 +610,27 @@ window.addEventListener("storage", (e) => {
     }
   }
 });
-document.querySelectorAll("dialog").forEach((d) =>
+// Light dismissal: close only when the press *started* on the backdrop (a
+// drag-select that ends outside must not close), and never discard edits.
+const outsideDialog = (d, e) => {
+  const r = d.getBoundingClientRect();
+  return (
+    e.clientX < r.left ||
+    e.clientX > r.right ||
+    e.clientY < r.top ||
+    e.clientY > r.bottom
+  );
+};
+document.querySelectorAll("dialog").forEach((d) => {
+  let pressedOutside = false;
+  d.addEventListener("pointerdown", (e) => {
+    pressedOutside = e.target === d && outsideDialog(d, e);
+  });
   d.addEventListener("click", (e) => {
-    if (e.target === d) {
-      const r = d.getBoundingClientRect();
-      if (
-        e.clientX < r.left ||
-        e.clientX > r.right ||
-        e.clientY < r.top ||
-        e.clientY > r.bottom
-      )
-        d.close();
-    }
-  }),
-);
+    const dirty = d.querySelector("form")?.dataset.dirty === "true";
+    if (pressedOutside && e.target === d && outsideDialog(d, e) && !dirty)
+      d.close();
+    pressedOutside = false;
+  });
+});
 navigate();
