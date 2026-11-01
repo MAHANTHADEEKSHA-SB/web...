@@ -5,6 +5,10 @@
 > [`docs/audit/contrast-map.json`](docs/audit/contrast-map.json) (verified colour fixes) · [`docs/audit/*.jpg`](docs/audit) (evidence)
 > **Handoff/status:** [`WORK_STATUS.md`](WORK_STATUS.md)
 
+> **Fix status (2026-11-01, branch `feature/sprint-1`, based on `main` @ `5c223cd`):** Sprint 1 is implemented.
+> Fixed: A1, A2, A4, B5, B6, B7, B8, B9, B11, B12, B13, B14, C4, C9, E3, E4, plus the new finding N6.
+> `check.cjs`: **13/26 pass** (0/26 on `main`). Findings from the follow-up review of the observed-usage feature are in [§10](#10-follow-up-review-observed-ai-usage-main--5c223cd).
+
 ---
 
 ## 0. TL;DR
@@ -786,6 +790,56 @@ B4 still fails until its JavaScript part (`aria-expanded`, Escape) lands, which 
 | C12 | A workflow triggers on `pull_request` |
 | E1 | Manifest PNG icons 16/32/48/128 exist |
 | E2 | Packager reads sub-folders |
+
+---
+
+## 10. Follow-up review: observed AI usage (`main` @ `5c223cd`)
+
+PR #5 added extension v1.1.0 (active time + observed send actions, `extension/content.js`) and reshaped the dashboard around time and sends.
+It deployed with run #6 (2026-11-01 11:13 UTC). I re-ran the 26 checks on that commit (**0/26**, so every finding above still applied) and reviewed the
+new code and UI with realistic data: 21 days of extension records for four tools plus a few manual API sessions.
+
+**The new code is careful:** sends are counted from trusted events on recognised controls only, prompt text is never read, Stop/disabled
+controls and IME composition are excluded, duplicates are suppressed twice (750 ms window + event IDs), and unknown values stay `null`
+instead of zero. 38 well-targeted tests cover it. The issues below are mostly about presentation.
+
+| ID | Finding | Evidence / where | Fix | Status |
+|---|---|---|---|---|
+| N1 | **The demo doesn't show the headline feature.** "Observed sends" reads "—" with "Import from the updated extension"; the column is all dashes; the sends chart says "No observed send data". | `createDemoSessions` (`src/data.js`) makes manual sessions only | Give the demo extension-style daily records (time + sends) for the browser tools, and keep manual sessions for API/other tools, which tells the real story | `feature/visual-polish` |
+| N2 | **Tracked rows repeat "Not measured" twice.** 112 such cells on Sessions for 61 records; the table grew to 8 columns. | `tableHTML` (`src/main.js`) | Muted "—" with a tooltip, plus one line under the table explaining it; phones omit them (done in B6) | `feature/visual-polish` |
+| N3 | **The activity breakdown is meaningless for tracked time.** Every extension record has category "Other", so Insights shows "Other 43h 38m" and "Other is where you spent the most time." | `insightsHTML` (`src/main.js`) | When tracked time exists, break attention down **by tool** (record site name), keep categories for manual logs | `feature/visual-polish` |
+| N4 | **Daily totals are called "sessions".** "19 sessions" in the mix legend, "Recent sessions" listing "Claude · browser activity", "19 of your 61 sessions". | `breakdownHTML`, `tableHTML`, `insightsHTML` | Say "entries" for mixed lists and "days" for tracked shares | `feature/visual-polish` |
+| N5 | **The demo chart looks synthetic.** Daily counts follow `(offset*7+3) % 5`, a visible 5-day saw-tooth. | `createDemoSessions` | Weekday rhythm + gentle trend + seeded variation | `feature/visual-polish` |
+| N6 | **Every extension update paused tracking**, including **Reload** of the unpacked extension (how users install updates), so people silently stopped tracking. | `extension/background.js` `onInstalled` | Pause only when `previousVersion` is older than 1.1.0 (or unknown); unit + worker tests | ✅ `feature/sprint-1` |
+| N7 | **Docs said the feature was "not confirmed deployed"**, but run #6 for `5c223cd` succeeded. | `WORK_STATUS.md`, `CLAUDE.md` | Corrected | ✅ `feature/sprint-1` |
+| N8 | **Token and cost totals disappeared.** The Tokens/Cost stat cards were replaced, so people who log API usage no longer see total spend anywhere. | `statsHTML` | Show a "Logged spend" figure only when the period has manual cost data | Owner decision (§13 of WORK_STATUS) |
+| N9 | **Mobile "AI mix" legend is clipped:** its last line is cut by the card edge at 390px. | `.breakdown-panel` mobile CSS | Bottom padding / no clipping | `feature/visual-polish` |
+| N10 | **The time chart always "crashes" at today.** Extension users import later, so today's point drops toward 0. | `chartHTML` | Draw today's segment dashed with a hollow point ("in progress") | `feature/visual-polish` |
+| N11 | **Edits to tracked records are silently overwritten** by the next import (stable IDs replace them). | session dialog | Say so in the dialog for tracked records | `feature/visual-polish` |
+
+### Sprint 1 results (`feature/sprint-1`)
+
+| ID | Commit summary | Verified by |
+|---|---|---|
+| A1 | New demo-mode entries save to the personal workspace | check A1 |
+| A2 | Light dismissal only from the backdrop and never with unsaved edits | check A2 + pristine/Escape spot-check |
+| A4 | `filterSessions({ includeFuture })`; Sessions lists future rows with a "Future" badge | check A4 + unit test |
+| B5 | `minmax(0, 1fr)` grid, single column < 420px, 16px touch controls | check B5 (360/430/600px) |
+| B6 | Semantic cell classes + `na`; two-line cards under 640px | check B6 + screenshot |
+| B7 | Sidebar scrolls | check B7 |
+| B8 | Contrast map (39 occurrences) | check B8: axe 347 → 0 |
+| B9 | 12px floor (100 declarations); wrapping workspace subtitle | check B9: 82% → 0% |
+| B11 | `confirmAction(…, tone)`; `danger-solid` for destructive actions | check B11 + screenshot |
+| B12 | Category colours keyed by name | check B12 |
+| B13 | `plural()` at 6 sites; formatters moved to tested `src/format.js` | check B13 + 4 unit tests |
+| B14 | `cellMoney()`: "$0" for exact zero, "<$0.01" for sub-cent; Intl totals. ("—" is now reserved for *unavailable*, so zero isn't shown as "—".) | check B14 + unit test |
+| C4 | `STORAGE_KEY` instead of literals | grep + tests |
+| C9 | Ticks counted back from today; last label right-aligned | check C9 (7/30/90 days) |
+| E3 | Alarm created only when missing | worker regression test (fails without the fix) |
+| E4 | Popup contrast map + 12px floor; extension 1.1.1 | axe on popup: 12 → 0; min text 8 → 12px |
+| N6 | Version-gated update pause | unit + worker tests |
+
+Unit tests: 38 → **46**. Remaining failing checks (A3, B1–B4, B10, B15, C1, C7, C8, C12, E1, E2) belong to Sprints 2–3.
 
 ---
 
