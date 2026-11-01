@@ -2307,3 +2307,132 @@ input:disabled {
     background: #2f253b38;
   }
 }
+
+/* B15: first-run welcome for an empty personal workspace. */
+.onboarding {
+  margin-top: 28px;
+  padding: 34px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: radial-gradient(120% 140% at 100% 0%, #f1ecfc 0%, #fff 55%);
+}
+.onboarding-intro h2 {
+  margin: 4px 0 8px;
+  font-family: "Manrope Variable", sans-serif;
+  font-size: 26px;
+  letter-spacing: -0.6px;
+  color: #3a3148;
+}
+.onboarding-intro p {
+  max-width: 560px;
+  margin: 0 0 24px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #665f74;
+}
+.onboarding-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.onboarding-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid #ece7f4;
+  border-radius: 14px;
+  background: #fff;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s;
+}
+.onboarding-card:hover {
+  transform: translateY(-2px);
+  border-color: #d9cdf3;
+  box-shadow: 0 10px 24px #3c254614;
+}
+.onboarding-card .settings-icon {
+  margin-bottom: 6px;
+}
+.onboarding-card strong {
+  font-size: 15px;
+  color: #3a3148;
+}
+.onboarding-card small {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #665f74;
+}
+.onboarding-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #7651ca;
+}
+.onboarding-go .icon {
+  width: 14px;
+  height: 14px;
+}
+.onboarding-demo {
+  margin-top: 20px;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+@media (max-width: 900px) {
+  .onboarding {
+    padding: 22px;
+  }
+  .onboarding-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Motion: gentle entrances that respect reduced-motion preferences. */
+dialog[open] {
+  animation: orbit-dialog-in 0.18s ease-out;
+}
+dialog[open]::backdrop {
+  animation: orbit-fade-in 0.18s ease-out;
+}
+#content {
+  animation: orbit-content-in 0.22s ease-out;
+}
+@keyframes orbit-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+}
+@keyframes orbit-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes orbit-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after,
+  *::backdrop {
+    animation: none !important;
+  }
+}
