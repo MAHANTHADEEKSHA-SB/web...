@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Orbit \u2014 private AI activity tracker",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Opt-in active AI time and observed message-send counts. Local only; never stores prompts or replies.",
   "minimum_chrome_version": "120",
   "permissions": ["storage", "alarms", "idle"],

@@ -16,9 +16,9 @@ Chrome/Edge 120 or newer is required for the 30-second alarm interval. This is a
 
 1. Download the latest extension ZIP from Orbit's Settings. Export a backup from the existing extension first if you want a copy of your history.
 2. Extract and replace the files inside the **same extension folder** you originally loaded. Keep the folder in the same location and keep the existing extension installed.
-3. Open `chrome://extensions` or `edge://extensions` and click **Reload** on Orbit. Check that its version is **1.1.0**.
+3. Open `chrome://extensions` or `edge://extensions` and click **Reload** on Orbit. Check that its version is **1.1.1** or newer.
 4. Refresh your open AI tabs so they use the updated send observer.
-5. Open the popup and enable **Track AI time & sends** again. Updates pause tracking so you can opt in to the expanded behavior. Existing recorded time is retained.
+5. Open the popup and enable **Track AI time & sends** again. Updating from a version before 1.1.0 pauses tracking once so you can opt in to the expanded behavior; later updates keep your choice. Existing recorded time is retained.
 
 Old time records do not acquire historical send counts: those counts remain unavailable. New counts begin when the updated observer is enabled; earlier messages and existing conversation history are not counted.
 
