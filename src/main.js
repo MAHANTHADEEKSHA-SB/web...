@@ -428,7 +428,7 @@ function dateValue(date = new Date()) {
 function openSession(session) {
   const dialog = document.querySelector("#session-dialog");
   const p = session?.provider || "claude";
-  dialog.innerHTML = `<form id="session-form"><div class="modal-header"><span class="settings-icon violet">${icon("spark")}</span><button type="button" class="icon-btn" data-close aria-label="Close">${icon("x")}</button></div><h2>${session ? "A little fine-tuning." : "What did you create today?"}</h2><p class="modal-subtitle">${state.mode === "demo" ? "Changes here affect sample data only. Switch to your own orbit to save real sessions." : "Every session is a small step toward something."}</p><label>Session title<input name="title" required maxlength="120" placeholder="e.g. Brainstorming my next big idea" value="${esc(session?.title || "")}" autofocus /></label><div class="form-grid"><label>AI tool<select name="provider">${PROVIDERS.map((x) => `<option value="${x.id}" ${p === x.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label><label>Activity<select name="category">${["Writing", "Coding", "Research", "Learning", "Other"].map((c) => `<option ${session?.category === c ? "selected" : ""}>${c}</option>`).join("")}</select></label><label>Date & time<input name="date" type="datetime-local" required max="${dateValue()}" value="${dateValue(session?.date)}" /></label><label>Duration (minutes)<span class="unit-input"><input name="duration" aria-label="Duration (minutes)" type="number" min="0" max="1440" step="any" value="${session?.duration ?? ""}" placeholder="e.g. 20" /><span aria-hidden="true">min</span></span></label></div><details ${session && (session.inputTokens || session.outputTokens || session.cost) ? "open" : ""}><summary>Tokens, model & cost <span>Optional</span></summary><label>Model<input name="model" maxlength="80" placeholder="e.g. Claude Sonnet" value="${esc(session?.model || "")}" /></label><div class="form-grid"><label>Input tokens<span class="unit-input"><input name="inputTokens" aria-label="Input tokens" type="number" min="0" step="1" value="${session?.inputTokens ?? ""}" placeholder="e.g. 1500" aria-describedby="token-help input-token-help" /><span aria-hidden="true">tokens</span></span><small class="field-help" id="input-token-help">Text sent to the AI, including context.</small></label><label>Output tokens<span class="unit-input"><input name="outputTokens" aria-label="Output tokens" type="number" min="0" step="1" value="${session?.outputTokens ?? ""}" placeholder="e.g. 500" aria-describedby="token-help output-token-help" /><span aria-hidden="true">tokens</span></span><small class="field-help" id="output-token-help">Text generated in the AI’s reply.</small></label></div><p class="fine-print" id="token-help">Enter whole token counts, not words or thousands: enter 1500 for 1.5k tokens. Use your provider’s usage report if available, or leave blank. The extension tracks time and observed send actions, not token counts.</p><label>Cost (USD)<span class="unit-input"><input name="cost" aria-label="Cost (USD)" type="number" min="0" step="any" value="${session?.cost ?? ""}" placeholder="Estimated if left blank" /><span aria-hidden="true">USD</span></span></label><p class="fine-print" id="cost-hint">Optional estimate; this isn’t your subscription bill. Leave tokens empty if you don’t know them.</p></details><p id="form-error" class="form-error" role="alert"></p><div class="modal-footer"><button type="button" class="button secondary" data-close>Cancel</button><button class="button primary" type="submit">${icon("check")} ${session ? "Save changes" : "Save session"}</button></div></form>`;
+  dialog.innerHTML = `<form id="session-form"><div class="modal-header"><span class="settings-icon violet">${icon("spark")}</span><button type="button" class="icon-btn" data-close aria-label="Close">${icon("x")}</button></div><h2>${session ? "A little fine-tuning." : "What did you create today?"}</h2><p class="modal-subtitle">${state.mode === "demo" ? (session ? "You’re editing sample data. Changes disappear when you reload." : "Saving this starts your own private orbit. The sample data stays untouched.") : "Every session is a small step toward something."}</p><label>Session title<input name="title" required maxlength="120" placeholder="e.g. Brainstorming my next big idea" value="${esc(session?.title || "")}" autofocus /></label><div class="form-grid"><label>AI tool<select name="provider">${PROVIDERS.map((x) => `<option value="${x.id}" ${p === x.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label><label>Activity<select name="category">${["Writing", "Coding", "Research", "Learning", "Other"].map((c) => `<option ${session?.category === c ? "selected" : ""}>${c}</option>`).join("")}</select></label><label>Date & time<input name="date" type="datetime-local" required max="${dateValue()}" value="${dateValue(session?.date)}" /></label><label>Duration (minutes)<span class="unit-input"><input name="duration" aria-label="Duration (minutes)" type="number" min="0" max="1440" step="any" value="${session?.duration ?? ""}" placeholder="e.g. 20" /><span aria-hidden="true">min</span></span></label></div><details ${session && (session.inputTokens || session.outputTokens || session.cost) ? "open" : ""}><summary>Tokens, model & cost <span>Optional</span></summary><label>Model<input name="model" maxlength="80" placeholder="e.g. Claude Sonnet" value="${esc(session?.model || "")}" /></label><div class="form-grid"><label>Input tokens<span class="unit-input"><input name="inputTokens" aria-label="Input tokens" type="number" min="0" step="1" value="${session?.inputTokens ?? ""}" placeholder="e.g. 1500" aria-describedby="token-help input-token-help" /><span aria-hidden="true">tokens</span></span><small class="field-help" id="input-token-help">Text sent to the AI, including context.</small></label><label>Output tokens<span class="unit-input"><input name="outputTokens" aria-label="Output tokens" type="number" min="0" step="1" value="${session?.outputTokens ?? ""}" placeholder="e.g. 500" aria-describedby="token-help output-token-help" /><span aria-hidden="true">tokens</span></span><small class="field-help" id="output-token-help">Text generated in the AI’s reply.</small></label></div><p class="fine-print" id="token-help">Enter whole token counts, not words or thousands: enter 1500 for 1.5k tokens. Use your provider’s usage report if available, or leave blank. The extension tracks time and observed send actions, not token counts.</p><label>Cost (USD)<span class="unit-input"><input name="cost" aria-label="Cost (USD)" type="number" min="0" step="any" value="${session?.cost ?? ""}" placeholder="Estimated if left blank" /><span aria-hidden="true">USD</span></span></label><p class="fine-print" id="cost-hint">Optional estimate; this isn’t your subscription bill. Leave tokens empty if you don’t know them.</p></details><p id="form-error" class="form-error" role="alert"></p><div class="modal-footer"><button type="button" class="button secondary" data-close>Cancel</button><button class="button primary" type="submit">${icon("check")} ${session ? "Save changes" : "Save session"}</button></div></form>`;
   dialog
     .querySelectorAll("[data-close]")
     .forEach((b) => (b.onclick = () => dialog.close()));
@@ -463,17 +463,27 @@ function openSession(session) {
         id: session?.id || crypto.randomUUID(),
         date: new Date(raw.date).toISOString(),
       });
+      // A new entry is real data even when the demo is showing: save it to
+      // the personal workspace. Edits to sample rows stay sample-only.
+      const toPersonal = state.mode === "demo" && !session;
+      const base = toPersonal ? state.personal : all();
       const next = session
-        ? all().map((s) => (s.id === session.id ? item : s))
-        : [item, ...all()];
-      if (state.mode === "personal" && !persist(next)) return;
-      if (state.mode === "demo") state.demo = next;
+        ? base.map((s) => (s.id === session.id ? item : s))
+        : [item, ...base];
+      if (state.mode === "personal" || toPersonal) {
+        if (!persist(next)) return;
+      } else {
+        state.demo = next;
+      }
       dialog.close();
-      renderContent();
+      if (toPersonal) setMode("personal");
+      else renderContent();
       toast(
-        session
-          ? "Session updated."
-          : "A new moment in your orbit. Session saved.",
+        toPersonal
+          ? "Saved to your own orbit. The sample data is untouched."
+          : session
+            ? "Session updated."
+            : "A new moment in your orbit. Session saved.",
       );
     } catch (err) {
       dialog.querySelector("#form-error").textContent = err.message;
