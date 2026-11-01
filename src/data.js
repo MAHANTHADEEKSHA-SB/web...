@@ -183,9 +183,20 @@ export function summarize(sessions) {
   return summary;
 }
 
+/**
+ * Filter by period, provider and search. Future-dated records (an import from
+ * another timezone or a wrong clock) are excluded from totals and charts, but
+ * `includeFuture` keeps them listable so they can be edited or deleted.
+ */
 export function filterSessions(
   sessions,
-  { days = 30, provider = "all", query = "", now = new Date() } = {},
+  {
+    days = 30,
+    provider = "all",
+    query = "",
+    now = new Date(),
+    includeFuture = false,
+  } = {},
 ) {
   const end = new Date(now);
   const start = startOfDay(end);
@@ -211,7 +222,7 @@ export function filterSessions(
           .toLowerCase()
           .includes(search);
       return (
-        date <= end &&
+        (includeFuture || date <= end) &&
         (allTime || date >= start) &&
         (provider === "all" || session.provider === provider) &&
         matchesSearch

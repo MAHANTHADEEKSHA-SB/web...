@@ -145,6 +145,33 @@ test("filters local date boundaries, provider and case-insensitive search; exclu
   assert.equal(filterSessions(sessions, { days: 0, now }).length, 3);
 });
 
+test("future-dated records stay listable for editing without entering totals", () => {
+  const now = new Date(2026, 9, 31, 12);
+  const sessions = [
+    validateSession(example({ id: "past", date: new Date(2026, 9, 30).toISOString() })),
+    validateSession(
+      example({ id: "future", date: new Date(2026, 10, 2, 9).toISOString() }),
+    ),
+  ];
+  assert.deepEqual(
+    filterSessions(sessions, { days: 0, now }).map((s) => s.id),
+    ["past"],
+  );
+  assert.deepEqual(
+    filterSessions(sessions, { days: 0, now, includeFuture: true }).map(
+      (s) => s.id,
+    ),
+    ["future", "past"],
+  );
+  // Bounded ranges keep their lower edge; the future record is still listed.
+  assert.deepEqual(
+    filterSessions(sessions, { days: 7, now, includeFuture: true }).map(
+      (s) => s.id,
+    ),
+    ["future", "past"],
+  );
+});
+
 test("daily buckets include empty days and aggregate at local midnight", () => {
   const now = new Date(2026, 9, 31, 12);
   const sessions = [

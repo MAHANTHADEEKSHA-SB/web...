@@ -2012,3 +2012,14 @@ input:disabled {
 .chart-caption {
   line-height: 1.7;
 }
+
+/* A4: future-dated records are listed (so they can be fixed) but flagged. */
+.future-badge {
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: #fff4e5;
+  color: #8a5300;
+  font-size: 12px;
+  font-weight: 500;
+}
