@@ -10,6 +10,7 @@ import {
   settle,
   recordSend,
   siteForUrl,
+  isOlderVersion,
 } from "../extension/core.js";
 import { parseImport } from "../src/data.js";
 
@@ -194,4 +195,14 @@ test("zero observed sends require a ready page observer; missing observers stay 
   let absent = advance(enabled(), start, claude, false);
   absent = advance(absent, start + 30000, null);
   assert.equal(exportSessions(absent)[0].messageCount, null);
+});
+
+test("version comparison treats unknown versions as older", () => {
+  assert.equal(isOlderVersion("1.0.0", "1.1.0"), true);
+  assert.equal(isOlderVersion("1.0.9", "1.1.0"), true);
+  assert.equal(isOlderVersion("1.1.0", "1.1.0"), false);
+  assert.equal(isOlderVersion("1.1.1", "1.1.0"), false);
+  assert.equal(isOlderVersion("2.0", "1.1.0"), false);
+  assert.equal(isOlderVersion(undefined, "1.1.0"), true);
+  assert.equal(isOlderVersion("beta", "1.1.0"), true);
 });

@@ -9,6 +9,20 @@ export const SITES = Object.freeze({
   "copilot.microsoft.com": { id: "copilot", name: "Copilot" },
 });
 export const MAX_GAP_MS = 90000;
+/** Send observation shipped in this version and needs a fresh opt-in once. */
+export const OBSERVER_VERSION = "1.1.0";
+/** True when dotted version `version` is older than `than`; unknown is older. */
+export function isOlderVersion(version, than) {
+  if (typeof version !== "string" || !/^\d+(\.\d+)*$/.test(version))
+    return true;
+  const a = version.split(".").map(Number);
+  const b = than.split(".").map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    const difference = (a[i] ?? 0) - (b[i] ?? 0);
+    if (difference) return difference < 0;
+  }
+  return false;
+}
 export function siteForUrl(url) {
   try {
     const parsed = new URL(url);

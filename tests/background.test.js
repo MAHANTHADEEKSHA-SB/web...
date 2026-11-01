@@ -373,6 +373,28 @@ test("extension update pauses tracking while preserving accumulated records and 
   assert.equal(w.state.cursor, null);
 });
 
+test("only updates from before send observation (1.1.0) require a fresh opt-in", async (t) => {
+  const fromLegacy = await worker(t, { enabled: true });
+  fromLegacy.chrome.runtime.onInstalled.emit({
+    reason: "update",
+    previousVersion: "1.0.0",
+  });
+  assert.equal(
+    (await fromLegacy.message({ type: "status" })).response.enabled,
+    false,
+  );
+  const fromCurrent = await worker(t, { enabled: true });
+  fromCurrent.chrome.runtime.onInstalled.emit({
+    reason: "update",
+    previousVersion: "1.1.0",
+  });
+  assert.equal(
+    (await fromCurrent.message({ type: "status" })).response.enabled,
+    true,
+    "a Reload or patch update keeps tracking enabled",
+  );
+});
+
 test("worker distinguishes unavailable observation from a ready observer with zero sends", async (t) => {
   const w = await worker(t, { enabled: true });
   w.context.observerReady = "missing";

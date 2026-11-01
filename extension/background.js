@@ -6,6 +6,8 @@ import {
   settle,
   siteForUrl,
   recordSend,
+  isOlderVersion,
+  OBSERVER_VERSION,
 } from "./core.js";
 
 const KEY = "orbit-private-tracker-v1";
@@ -77,8 +79,13 @@ function enqueueSample(options) {
 }
 chrome.runtime.onInstalled.addListener((details) => {
   serialize(async () => {
-    // Expanded tracking requires a fresh opt-in after an update.
-    if (details.reason === "update") {
+    // Send observation (1.1.0) expanded what is tracked, so updating from an
+    // older version needs a fresh opt-in. Later updates, including Reloads of
+    // the unpacked extension, keep the user's choice.
+    if (
+      details.reason === "update" &&
+      isOlderVersion(details.previousVersion, OBSERVER_VERSION)
+    ) {
       const state = await readState();
       await saveState({ ...state, enabled: false, cursor: null });
     }
