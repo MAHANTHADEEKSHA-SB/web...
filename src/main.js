@@ -372,10 +372,11 @@ function chartHTML(items) {
     .join(
       "",
     )}</select></div><div class="chart-legend"><i></i>${meta.legend}<em class="chart-key">today so far</em><span>${state.days ? "Last " + state.days + " days" : "Up to the last 90 days"}</span></div>
- <div class="chart-wrap">${chartSVG(state.chartWidth[state.view] ?? 760)}<div class="chart-tip" aria-hidden="true" hidden></div><p class="sr-only chart-live" aria-live="polite"></p></div><div class="chart-caption">${icon("spark")} ${state.chart === "messages" ? "Only observed dates are plotted; gaps are unavailable. Counts aren’t confirmed responses or remaining limits." : "Time is recorded from active tabs. Tokens and costs are only available when manually logged."}</div></article>`;
+ <div class="chart-wrap">${state.chartWidth[state.view] ? chartSVG(state.chartWidth[state.view]) : '<svg class="usage-chart" aria-hidden="true"></svg>'}<div class="chart-tip" aria-hidden="true" hidden></div><p class="sr-only chart-live" aria-live="polite"></p></div><div class="chart-caption">${icon("spark")} ${state.chart === "messages" ? "Only observed dates are plotted; gaps are unavailable. Counts aren’t confirmed responses or remaining limits." : "Time is recorded from active tabs. Tokens and costs are only available when manually logged."}</div></article>`;
 }
 /** Fit the chart to its panel before first paint, follow resizes, and wire
- * the hover / touch / keyboard read-out. */
+ * the hover / touch / keyboard read-out. Until the panel has been measured
+ * once, chartHTML emits a placeholder, so the chart is drawn exactly once. */
 function mountChart() {
   chartObserver?.disconnect();
   const wrap = document.querySelector(".chart-wrap");
