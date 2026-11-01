@@ -28,9 +28,9 @@ header strong span {
   color: #8a71cf;
 }
 .mark {
-  font-size: 34px;
-  line-height: 1;
-  color: #8466cd;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
 }
 .pill {
   margin-left: auto;

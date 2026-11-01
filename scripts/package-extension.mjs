@@ -1,5 +1,5 @@
 import { readFile, readdir, mkdir, writeFile } from "node:fs/promises";
-import { resolve, relative } from "node:path";
+import { resolve, relative, sep } from "node:path";
 import { zipSync } from "fflate";
 
 // Ship the optional extension as a separate, user-installed download.
@@ -7,11 +7,17 @@ import { zipSync } from "fflate";
 const root = resolve(import.meta.dirname, "..");
 const directory = resolve(root, "extension");
 const files = {};
-for (const entry of await readdir(directory, { withFileTypes: true })) {
+// Recursive, so icons/ and any future sub-folders ship too. ZIP paths use "/".
+for (const entry of await readdir(directory, {
+  recursive: true,
+  withFileTypes: true,
+})) {
   if (!entry.isFile() || !/\.(js|html|css|json|md|svg|png)$/.test(entry.name))
     continue;
-  const path = resolve(directory, entry.name);
-  files[relative(directory, path)] = new Uint8Array(await readFile(path));
+  const path = resolve(entry.parentPath ?? entry.path, entry.name);
+  files[relative(directory, path).split(sep).join("/")] = new Uint8Array(
+    await readFile(path),
+  );
 }
 if (!files["manifest.json"]) throw new Error("Extension manifest is missing.");
 await mkdir(resolve(root, "public"), { recursive: true });
