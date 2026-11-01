@@ -109,7 +109,7 @@ const state = {
   mode,
   personal: stored,
   demo: createDemoSessions(),
-  showAll: false,
+  limit: 50, // rows shown in the full activity list (B1 pagination)
   chartWidth: {}, // measured chart width per view, in CSS px
 };
 const all = () => (state.mode === "demo" ? state.demo : state.personal);
@@ -522,17 +522,23 @@ function rowHTML(s) {
         : "chat";
   return `<tr${tracked ? ' class="is-tracked"' : ""}><td class="col-title"><div class="session-title">${icon(glyph)}<div><strong>${esc(s.title)}</strong><small>${tracked ? "Tracked daily total" : esc(s.category)}</small></div></div></td><td class="col-tool"><span class="provider-pill">${mark(s.provider)}${esc(toolName(s))}</span></td><td class="col-date">${prettyDate(s.date)}${new Date(s.date) > Date.now() ? ' <small class="future-badge" title="Dated in the future: not counted in totals">Future</small>' : ""}</td><td class="numeric col-sends${s.messageCount == null ? " na" : ""}" data-unit="${s.messageCount === 1 ? "send" : "sends"}">${s.messageCount == null ? NOT_MEASURED : compact(s.messageCount)}</td><td class="numeric col-tokens${tracked ? " na" : ""}" data-unit="tokens">${tracked ? NOT_MEASURED : compact(s.inputTokens + s.outputTokens)}</td><td class="numeric col-cost${s.cost == null ? " na" : ""}">${s.cost == null ? NOT_MEASURED : cellMoney(s.cost)}</td><td class="col-time">${duration(s.duration)}</td><td class="col-actions"><div class="row-actions"><button class="icon-btn" data-edit="${esc(s.id)}" aria-label="Edit ${esc(s.title)}">${icon("edit")}</button><button class="icon-btn delete-btn" data-delete="${esc(s.id)}" aria-label="Delete ${esc(s.title)}">${icon("trash")}</button></div></td></tr>`;
 }
-function tableHTML(items, full = false) {
-  const sorted = [...items].sort((a, b) => new Date(b.date) - new Date(a.date));
-  const shown = full ? sorted : sorted.slice(0, 5);
+const PAGE_SIZE = 50;
+/** The part of the activity table that changes while filtering (B1). */
+function rowsRegionHTML(items, full) {
+  // filterSessions already returns newest first.
+  const shown = full ? items.slice(0, state.limit) : items.slice(0, 5);
   const filtering = state.query || state.provider !== "all";
   const unmeasured = shown.some(
     (s) => s.source === "extension" || s.messageCount == null,
   );
-  return `<article class="panel sessions-panel"><div class="panel-heading"><div><h2>${full ? "All activity" : "Recent activity"} <span class="count-tag">${items.length.toLocaleString("en-US")}</span></h2><p>${full ? "Logged sessions and tracked daily totals, newest first." : "A few moments from your AI journey"}</p></div>${!full ? `<a class="text-link" href="#sessions">View all activity ${icon("arrow")}</a>` : ""}</div>
+  const more = full ? items.length - shown.length : 0;
+  return `${shown.length ? `<div class="table-scroll"><table><thead><tr><th scope="col">Activity</th><th scope="col">AI tool</th><th scope="col">Date</th><th scope="col" title="Send actions observed by the browser extension">Sends</th><th scope="col" title="Tokens you logged by hand">Tokens</th><th scope="col" title="Logged or estimated cost of a logged session">Cost</th><th scope="col">Time</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>${shown.map(rowHTML).join("")}</tbody></table></div>` : `<div class="empty-state"><span>${icon("chat")}</span><h3>${filtering ? "Nothing matches just yet." : "Your next idea starts here."}</h3><p>${filtering ? "Try another search or provider." : "Log your first AI session and watch your orbit take shape."}</p><button class="button primary" data-action="add">${icon("plus")} Log a session</button></div>`}${more > 0 ? `<div class="table-more"><button class="button secondary" data-more>Show ${Math.min(PAGE_SIZE, more).toLocaleString("en-US")} more</button></div>` : ""}
+ <div class="table-bottom"><span>${shown.length.toLocaleString("en-US")} of ${plural(items.length, "entry", "entries")}${unmeasured ? ' · <span class="na-mark">—</span> not measured' : ""}</span><span>${icon("lock")} Only you can see your data</span></div>`;
+}
+function tableHTML(items, full = false) {
+  return `<article class="panel sessions-panel"><div class="panel-heading"><div><h2>${full ? "All activity" : "Recent activity"} <span class="count-tag" data-region="count">${items.length.toLocaleString("en-US")}</span></h2><p>${full ? "Logged sessions and tracked daily totals, newest first." : "A few moments from your AI journey"}</p></div>${!full ? `<a class="text-link" href="#sessions">View all activity ${icon("arrow")}</a>` : ""}</div>
  <div class="table-toolbar"><label class="search-field">${icon("search")}<input id="search" type="search" placeholder="Search activity…" aria-label="Search activity" value="${esc(state.query)}" /></label><select id="provider-filter" aria-label="Filter by AI provider"><option value="all">All providers</option>${PROVIDERS.map((p) => `<option value="${p.id}" ${state.provider === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></div>
- ${shown.length ? `<div class="table-scroll"><table><thead><tr><th scope="col">Activity</th><th scope="col">AI tool</th><th scope="col">Date</th><th scope="col" title="Send actions observed by the browser extension">Sends</th><th scope="col" title="Tokens you logged by hand">Tokens</th><th scope="col" title="Logged or estimated cost of a logged session">Cost</th><th scope="col">Time</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>${shown.map(rowHTML).join("")}</tbody></table></div>` : `<div class="empty-state"><span>${icon("chat")}</span><h3>${filtering ? "Nothing matches just yet." : "Your next idea starts here."}</h3><p>${filtering ? "Try another search or provider." : "Log your first AI session and watch your orbit take shape."}</p><button class="button primary" data-action="add">${icon("plus")} Log a session</button></div>`}
- <div class="table-bottom"><span>${shown.length.toLocaleString("en-US")} of ${plural(items.length, "entry", "entries")}${unmeasured ? ' · <span class="na-mark">—</span> not measured' : ""}</span><span>${icon("lock")} Only you can see your data</span></div></article>`;
+ <div data-region="rows">${rowsRegionHTML(items, full)}</div></article>`;
 }
 // Colour follows the category, not its rank, so it means the same in every range.
 const CATEGORY_COLORS = {
@@ -601,53 +607,90 @@ function renderContent() {
     state.mode === "personal" &&
     !state.personal.length &&
     state.view === "overview";
-  document.querySelector("#content").innerHTML =
+  const content = document.querySelector("#content");
+  content.innerHTML =
     state.view === "settings"
       ? settingsHTML()
       : firstRun
         ? onboardingHTML()
         : `
- <div class="section-toolbar"><div class="section-label">${icon(state.view === "insights" ? "spark" : "grid")} ${state.view === "overview" ? "Your overview" : state.view === "insights" ? "The bigger picture" : "Session history"} <span class="light-dot">·</span><span class="period-label">${state.days ? "Last " + state.days + " days" : "All time"}</span></div>${periodControl()}</div>
- ${state.view === "overview" ? `${statsHTML(items)}<div class="charts-grid">${chartHTML(items)}${breakdownHTML(items)}</div>${tableHTML(items)}` : state.view === "sessions" ? tableHTML(items, true) : insightsHTML(items)}`;
-  document.querySelectorAll("#content [data-action]").forEach(bindAction);
+ <div class="section-toolbar"><div class="section-label">${icon(state.view === "insights" ? "spark" : "grid")} ${state.view === "overview" ? "Your overview" : state.view === "insights" ? "The bigger picture" : "Activity history"} <span class="light-dot">·</span><span class="period-label">${state.days ? "Last " + state.days + " days" : "All time"}</span></div>${periodControl()}</div>
+ ${state.view === "overview" ? `<div data-region="stats">${statsHTML(items)}</div><div class="charts-grid" data-region="charts">${chartHTML(items)}${breakdownHTML(items)}</div>${tableHTML(items)}` : state.view === "sessions" ? tableHTML(items, true) : insightsHTML(items)}`;
+  bindContent(content);
   mountChart();
   document.querySelectorAll("[data-days]").forEach(
     (b) =>
       (b.onclick = () => {
         state.days = Number(b.dataset.days);
+        state.limit = PAGE_SIZE;
         renderContent();
       }),
   );
-  document.querySelector("#chart-metric")?.addEventListener("change", (e) => {
-    state.chart = e.target.value;
-    renderContent();
-  });
   document
     .querySelector("#provider-filter")
     ?.addEventListener("change", (e) => {
       state.provider = e.target.value;
-      renderContent();
+      state.limit = PAGE_SIZE;
+      updateResults();
     });
-  document.querySelector("#search")?.addEventListener("input", (e) => {
-    const position = e.target.selectionStart;
-    state.query = e.target.value;
+  // B1: search never rebuilds its own <input> (that broke IME composition
+  // and focus), waits for composition to finish, and is debounced.
+  const search = document.querySelector("#search");
+  if (search) {
+    let timer;
+    const apply = () => {
+      clearTimeout(timer);
+      if (state.query === search.value) return;
+      state.query = search.value;
+      state.limit = PAGE_SIZE;
+      updateResults();
+    };
+    search.addEventListener("input", (e) => {
+      if (e.isComposing) return;
+      clearTimeout(timer);
+      timer = setTimeout(apply, 120);
+    });
+    search.addEventListener("compositionend", apply);
+  }
+}
+/** Wire the controls inside a freshly rendered region. */
+function bindContent(root) {
+  root.querySelectorAll("[data-action]").forEach(bindAction);
+  root.querySelector("#chart-metric")?.addEventListener("change", (e) => {
+    state.chart = e.target.value;
     renderContent();
-    const field = document.querySelector("#search");
-    field.focus();
-    try {
-      field.setSelectionRange(position, position);
-    } catch {}
   });
-  document
+  root
     .querySelectorAll("[data-edit]")
     .forEach(
       (b) =>
         (b.onclick = () =>
           openSession(all().find((s) => s.id === b.dataset.edit))),
     );
-  document
+  root
     .querySelectorAll("[data-delete]")
     .forEach((b) => (b.onclick = () => deleteSession(b.dataset.delete)));
+  root.querySelector("[data-more]")?.addEventListener("click", () => {
+    state.limit += PAGE_SIZE;
+    updateResults();
+  });
+}
+/** Re-render only what filtering changes, leaving the filter controls alone. */
+function updateResults() {
+  const items = filtered();
+  const region = (name) => document.querySelector(`[data-region="${name}"]`);
+  if (region("stats")) region("stats").innerHTML = statsHTML(items);
+  if (region("charts")) {
+    region("charts").innerHTML = chartHTML(items) + breakdownHTML(items);
+    bindContent(region("charts"));
+    mountChart();
+  }
+  if (region("rows")) {
+    region("rows").innerHTML = rowsRegionHTML(items, state.view === "sessions");
+    bindContent(region("rows"));
+  }
+  if (region("count"))
+    region("count").textContent = items.length.toLocaleString("en-US");
 }
 function render() {
   shell();
@@ -661,6 +704,7 @@ function navigate() {
     : "overview";
   state.query = "";
   state.provider = "all";
+  state.limit = PAGE_SIZE;
   render();
   document.title =
     state.view === "overview"

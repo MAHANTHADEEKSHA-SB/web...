@@ -2436,3 +2436,11 @@ dialog[open]::backdrop {
     animation: none !important;
   }
 }
+
+/* B1: the full activity list pages in 50s. */
+.table-more {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  border-top: 1px solid #f4eff8;
+}
