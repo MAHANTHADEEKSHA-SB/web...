@@ -2031,3 +2031,25 @@ input:disabled {
 .workspace > div {
   min-width: 0;
 }
+
+/* B5: equal form columns (1fr would honour the date input's min-content
+   width and squeeze its neighbour), one column on narrow phones, and 16px
+   controls on touch layouts so iOS Safari doesn't zoom on focus. */
+.form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 420px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 760px) {
+  input,
+  select,
+  textarea,
+  .search-field input,
+  form input,
+  form select {
+    font-size: 16px;
+  }
+}
