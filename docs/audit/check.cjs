@@ -69,8 +69,10 @@ const checks = [];
 const check = (id, title, fn) => checks.push({ id, title, fn });
 
 /* ------------------------------------------------------------------ helpers */
-async function open(browser, { viewport = DESKTOP, hash = "overview", sessions, mode } = {}) {
-  const context = await browser.newContext({ viewport });
+async function open(browser, { viewport = DESKTOP, hash = "overview", sessions, mode, bypassCSP = false } = {}) {
+  // bypassCSP is only for checks that inject test tooling (axe-core); every
+  // other check runs under the site's real Content-Security-Policy.
+  const context = await browser.newContext({ viewport, bypassCSP });
   const page = await context.newPage();
   await page.goto(BASE);
   if (sessions || mode) {
@@ -275,7 +277,7 @@ check("B8", "No WCAG AA colour-contrast failures (axe-core), demo + personal, 4 
   const samples = new Set();
   for (const mode of ["demo", "personal"]) {
     for (const view of ["overview", "sessions", "insights", "settings"]) {
-      const { context, page } = await open(b, { hash: view, mode });
+      const { context, page } = await open(b, { hash: view, mode, bypassCSP: true });
       await page.addScriptTag({ path: AXE_PATH });
       const found = await page.evaluate(async () =>
         (await axe.run(document, { runOnly: ["color-contrast"] })).violations.flatMap((v) => v.nodes.map((n) => n.target.join(" "))),
