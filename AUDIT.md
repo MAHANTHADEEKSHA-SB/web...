@@ -5,9 +5,10 @@
 > [`docs/audit/contrast-map.json`](docs/audit/contrast-map.json) (verified colour fixes) · [`docs/audit/*.jpg`](docs/audit) (evidence)
 > **Handoff/status:** [`WORK_STATUS.md`](WORK_STATUS.md)
 
-> **Fix status (2026-11-01, branch `feature/sprint-1`, based on `main` @ `5c223cd`):** Sprint 1 is implemented.
-> Fixed: A1, A2, A4, B5, B6, B7, B8, B9, B11, B12, B13, B14, C4, C9, E3, E4, plus the new finding N6.
-> `check.cjs`: **13/26 pass** (0/26 on `main`). Findings from the follow-up review of the observed-usage feature are in [§10](#10-follow-up-review-observed-ai-usage-main--5c223cd).
+> **Fix status (2026-11-01):** two stacked branches on top of `main` @ `5c223cd` (0/26 checks).
+> - `feature/sprint-1`: A1, A2, A4, B5–B9, B11–B14, C4, C9, E3, E4, N6, N7. **13/26** checks.
+> - `feature/visual-polish` (includes sprint-1): plus B1, B3, B4, B10, B15, C1, C7, C8, E1, E2, E5, N1–N5, N9–N11. **23/26** checks; Lighthouse accessibility, best practices and performance 100 (mobile and desktop).
+> - Still open: A3 and B2 (owner decisions), C12 (CI), and the rest of the backlog below. The follow-up review of the observed-usage feature is in [§10](#10-follow-up-review-observed-ai-usage-main--5c223cd).
 
 ---
 
@@ -805,17 +806,17 @@ instead of zero. 38 well-targeted tests cover it. The issues below are mostly ab
 
 | ID | Finding | Evidence / where | Fix | Status |
 |---|---|---|---|---|
-| N1 | **The demo doesn't show the headline feature.** "Observed sends" reads "—" with "Import from the updated extension"; the column is all dashes; the sends chart says "No observed send data". | `createDemoSessions` (`src/data.js`) makes manual sessions only | Give the demo extension-style daily records (time + sends) for the browser tools, and keep manual sessions for API/other tools, which tells the real story | `feature/visual-polish` |
-| N2 | **Tracked rows repeat "Not measured" twice.** 112 such cells on Sessions for 61 records; the table grew to 8 columns. | `tableHTML` (`src/main.js`) | Muted "—" with a tooltip, plus one line under the table explaining it; phones omit them (done in B6) | `feature/visual-polish` |
-| N3 | **The activity breakdown is meaningless for tracked time.** Every extension record has category "Other", so Insights shows "Other 43h 38m" and "Other is where you spent the most time." | `insightsHTML` (`src/main.js`) | When tracked time exists, break attention down **by tool** (record site name), keep categories for manual logs | `feature/visual-polish` |
-| N4 | **Daily totals are called "sessions".** "19 sessions" in the mix legend, "Recent sessions" listing "Claude · browser activity", "19 of your 61 sessions". | `breakdownHTML`, `tableHTML`, `insightsHTML` | Say "entries" for mixed lists and "days" for tracked shares | `feature/visual-polish` |
-| N5 | **The demo chart looks synthetic.** Daily counts follow `(offset*7+3) % 5`, a visible 5-day saw-tooth. | `createDemoSessions` | Weekday rhythm + gentle trend + seeded variation | `feature/visual-polish` |
+| N1 | **The demo doesn't show the headline feature.** "Observed sends" reads "—" with "Import from the updated extension"; the column is all dashes; the sends chart says "No observed send data". | `createDemoSessions` (`src/data.js`) makes manual sessions only | Give the demo extension-style daily records (time + sends) for the browser tools, and keep manual sessions for API/other tools, which tells the real story | ✅ `feature/visual-polish` |
+| N2 | **Tracked rows repeat "Not measured" twice.** 112 such cells on Sessions for 61 records; the table grew to 8 columns. | `tableHTML` (`src/main.js`) | Muted "—" with a tooltip, plus one line under the table explaining it; phones omit them (done in B6) | ✅ `feature/visual-polish` |
+| N3 | **The activity breakdown is meaningless for tracked time.** Every extension record has category "Other", so Insights shows "Other 43h 38m" and "Other is where you spent the most time." | `insightsHTML` (`src/main.js`) | When tracked time exists, break attention down **by tool** (record site name), keep categories for manual logs | ✅ `feature/visual-polish` |
+| N4 | **Daily totals are called "sessions".** "19 sessions" in the mix legend, "Recent sessions" listing "Claude · browser activity", "19 of your 61 sessions". | `breakdownHTML`, `tableHTML`, `insightsHTML` | Say "entries" for mixed lists and "days" for tracked shares | ✅ `feature/visual-polish` |
+| N5 | **The demo chart looks synthetic.** Daily counts follow `(offset*7+3) % 5`, a visible 5-day saw-tooth. | `createDemoSessions` | Weekday rhythm + gentle trend + seeded variation | ✅ `feature/visual-polish` |
 | N6 | **Every extension update paused tracking**, including **Reload** of the unpacked extension (how users install updates), so people silently stopped tracking. | `extension/background.js` `onInstalled` | Pause only when `previousVersion` is older than 1.1.0 (or unknown); unit + worker tests | ✅ `feature/sprint-1` |
 | N7 | **Docs said the feature was "not confirmed deployed"**, but run #6 for `5c223cd` succeeded. | `WORK_STATUS.md`, `CLAUDE.md` | Corrected | ✅ `feature/sprint-1` |
 | N8 | **Token and cost totals disappeared.** The Tokens/Cost stat cards were replaced, so people who log API usage no longer see total spend anywhere. | `statsHTML` | Show a "Logged spend" figure only when the period has manual cost data | Owner decision (§13 of WORK_STATUS) |
-| N9 | **Mobile "AI mix" legend is clipped:** its last line is cut by the card edge at 390px. | `.breakdown-panel` mobile CSS | Bottom padding / no clipping | `feature/visual-polish` |
-| N10 | **The time chart always "crashes" at today.** Extension users import later, so today's point drops toward 0. | `chartHTML` | Draw today's segment dashed with a hollow point ("in progress") | `feature/visual-polish` |
-| N11 | **Edits to tracked records are silently overwritten** by the next import (stable IDs replace them). | session dialog | Say so in the dialog for tracked records | `feature/visual-polish` |
+| N9 | **Mobile "AI mix" legend is clipped:** its last line is cut by the card edge at 390px. | `.breakdown-panel` mobile CSS | Bottom padding / no clipping | ✅ `feature/visual-polish` |
+| N10 | **The time chart always "crashes" at today.** Extension users import later, so today's point drops toward 0. | `chartHTML` | Draw today's segment dashed with a hollow point ("in progress") | ✅ `feature/visual-polish` |
+| N11 | **Edits to tracked records are silently overwritten** by the next import (stable IDs replace them). | session dialog | Say so in the dialog for tracked records | ✅ `feature/visual-polish` |
 
 ### Sprint 1 results (`feature/sprint-1`)
 
@@ -841,6 +842,26 @@ instead of zero. 38 well-targeted tests cover it. The issues below are mostly ab
 
 Unit tests: 38 → **46**. Remaining failing checks (A3, B1–B4, B10, B15, C1, C7, C8, C12, E1, E2) belong to Sprints 2–3.
 
+### Visual polish results (`feature/visual-polish`, stacked on `feature/sprint-1`)
+
+| ID | What changed | Verified by |
+|---|---|---|
+| B3 + N10 | The chart is drawn at the panel's measured width (1 SVG unit = 1 CSS px, `ResizeObserver`) with friendly ticks (`niceScale`), a monotone curve, a dashed "today so far" segment, and a hover/tap/keyboard read-out with a screen-reader summary | check B3 (8 width/view combos), unit tests `tests/chart.test.js`, interaction script ([17](docs/audit/17-polish-chart-readout-1366.jpg), [18](docs/audit/18-polish-chart-fills-insights-1366.jpg)) |
+| B1 | Filtering re-renders only `[data-region]` stats/charts/rows/count, never the `<input>`; IME-aware, debounced search; 50-row pages | check B1: same node, `日本`, worst long task 947 → 0 ms at 1k sessions |
+| B4 | Closed drawer hidden from Tab/AT, `aria-expanded`, Escape/outside click, focus management, scrim | check B4 |
+| B10, C7 | Focus kept after delete/edit; per-view titles, `aria-current`, `aria-pressed`, `th scope`, labelled dialogs, skip link (top-centre), focus + scroll on route change | checks B10, C7; Lighthouse a11y 94/96 → **100** |
+| B15 | First-run welcome with three starts and a demo link ([15](docs/audit/15-polish-first-run-1366x768.jpg)) | check B15 |
+| C1 | Compact JSON in storage (exports stay indented) | check C1 + unit test |
+| C8 | OG/Twitter tags with a 1200×630 card (`public/og-image.png`), web manifest + icons, apple-touch-icon, `<noscript>`, build-time CSP (`vite.config.js`) | check C8; 0 CSP violations across views, dialogs, chart and exports |
+| E1, E2, E5 | Extension PNG icons, recursive packager (ZIP 9 → 13 files), real logo in the popup | checks E1, E2; loaded in Chromium |
+| N1, N5 | Demo mirrors real use (tracked web chats with sends + logged API work), seeded organic rhythm, no same-day double counting | unit test; [13](docs/audit/13-polish-demo-overview-1366.jpg) |
+| N2, N4, N11 | Quiet "—" with a single footnote, "Tracked daily total", activity/entries wording, time-share AI mix, a note when editing tracked records | screenshots; checks B13/B14 |
+| N3 | Attention by tool when tracked data exists; the insight speaks in time share and daily sends ([14](docs/audit/14-polish-insights-by-tool-1366.jpg)) | `timeByTool` unit test |
+| N9 | Mobile mix legend no longer clipped ([16](docs/audit/16-polish-mobile-overview-390.jpg)) | screenshot |
+| — | Workspace card is an honest demo/personal switcher; dialogs and views ease in (reduced-motion safe) | screenshots |
+
+Unit tests: 46 → **51**. Lighthouse on the final build: Performance 100, Accessibility **100**, Best Practices **100**, SEO 91 (robots.txt only, a local-preview artifact).
+
 ---
 
 ## Appendix — evidence images
@@ -859,3 +880,9 @@ Unit tests: 38 → **46**. Remaining failing checks (A3, B1–B4, B10, B15, C1, 
 | [10](docs/audit/10-after-css-patch-desktop-1366.jpg) | **After** B8 + B9 + B7 (throwaway build) |
 | [11](docs/audit/11-after-css-patch-mobile-table-390.jpg) | **After** B6 card rows (an earlier variant with `·` separators; the CSS in B6 uses `gap` instead) |
 | [12](docs/audit/12-after-css-patch-mobile-dialog-360.jpg) | **After** B5 single-column form with 16px inputs |
+| [13](docs/audit/13-polish-demo-overview-1366.jpg) | **Polish:** demo overview with observed sends, time-share mix, quiet table |
+| [14](docs/audit/14-polish-insights-by-tool-1366.jpg) | **Polish:** Insights by tool for tracked data |
+| [15](docs/audit/15-polish-first-run-1366x768.jpg) | **Polish:** first-run welcome on a 1366×768 laptop |
+| [16](docs/audit/16-polish-mobile-overview-390.jpg) | **Polish:** phone overview with card rows and an unclipped legend |
+| [17](docs/audit/17-polish-chart-readout-1366.jpg) | **Polish:** chart read-out, nice ticks, dashed "today so far" |
+| [18](docs/audit/18-polish-chart-fills-insights-1366.jpg) | **Polish:** Insights chart fills its card (compare [01](docs/audit/01-chart-letterbox-insights-1366.jpg)) |
