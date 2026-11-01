@@ -14,6 +14,8 @@ import {
   parseImport,
   exportData,
   STORAGE_KEY,
+  timeByTool,
+  toolName,
 } from "./data.js";
 import {
   cellMoney,
@@ -460,29 +462,73 @@ function mountChart() {
     } else if (event.key === "Escape") hide();
   });
 }
+// Tools beyond the four providers keep their own colours in the mix.
+const TOOL_COLORS = { Perplexity: "#5fa8b0", Copilot: "#7b9fd6" };
+const toolColor = (tool) =>
+  TOOL_COLORS[tool.name] ?? provider(tool.provider).color;
 function breakdownHTML(items) {
-  const count = items.length;
+  const tools = timeByTool(items);
+  const totalMinutes = tools.reduce((sum, tool) => sum + tool.minutes, 0);
+  // Share of time when time is known (N4), otherwise share of entries.
+  const weight = (tool) =>
+    totalMinutes
+      ? tool.minutes
+      : items.filter((s) => toolName(s) === tool.name).length;
+  const total = tools.reduce((sum, tool) => sum + weight(tool), 0);
+  const shares = tools.map((tool) => ({
+    ...tool,
+    share: total ? (100 * weight(tool)) / total : 0,
+  }));
   let sum = 0;
-  const groups = PROVIDERS.map((p) => ({
-    ...p,
-    count: items.filter((s) => s.provider === p.id).length,
-  })).filter((p) => p.count > 0);
-  const gradient = groups
-    .map((p) => {
+  const gradient = shares
+    .map((tool) => {
       const start = sum;
-      sum += (100 * p.count) / (count || 1);
-      return `${p.color} ${start}% ${sum}%`;
+      sum += tool.share;
+      return `${toolColor(tool)} ${start.toFixed(2)}% ${sum.toFixed(2)}%`;
     })
     .join(",");
-  return `<article class="panel breakdown-panel"><div class="panel-heading"><div><h2>Your AI mix</h2><p>A tool for every kind of thought</p></div>${icon("spark", "muted")}</div><div class="donut" style="--donut:${gradient ? `conic-gradient(${gradient})` : "#eeeaf6"}" role="img" aria-label="Session share by provider"><div><span>${groups.length}</span><small>AI tools used</small></div></div><div class="provider-legend">${(groups.length ? groups : PROVIDERS.slice(0, 3).map((p) => ({ ...p, count: 0 }))).map((p) => `<div><span><i style="background:${p.color}"></i>${esc(p.name)}</span><strong>${count ? Math.round((p.count / count) * 100) : 0}%<small>${plural(p.count, "session")}</small></strong></div>`).join("")}</div></article>`;
+  const legend = shares.length
+    ? shares.slice(0, 5)
+    : PROVIDERS.slice(0, 3).map((p) => ({
+        name: p.name,
+        provider: p.id,
+        minutes: 0,
+        share: 0,
+      }));
+  const summary = shares
+    .map((tool) => `${tool.name} ${Math.round(tool.share)}%`)
+    .join(", ");
+  return `<article class="panel breakdown-panel"><div class="panel-heading"><div><h2>Your AI mix</h2><p>${totalMinutes ? "Share of your time, by tool" : "A tool for every kind of thought"}</p></div>${icon("spark", "muted")}</div><div class="donut" style="--donut:${gradient ? `conic-gradient(${gradient})` : "#eeeaf6"}" role="img" aria-label="${esc(summary ? `AI mix by time: ${summary}` : "No activity in this period")}"><div><span>${shares.length}</span><small>${shares.length === 1 ? "AI tool used" : "AI tools used"}</small></div></div><div class="provider-legend">${legend
+    .map(
+      (tool) =>
+        `<div><span><i style="background:${toolColor(tool)}"></i>${esc(tool.name)}</span><strong>${Math.round(tool.share)}%<small>${duration(tool.minutes)}</small></strong></div>`,
+    )
+    .join("")}</div></article>`;
+}
+// Unavailable values are a quiet dash, explained once under the table (N2).
+const NOT_MEASURED = '<span class="na-mark" title="Not measured for this entry">—</span>';
+function rowHTML(s) {
+  const tracked = s.source === "extension";
+  const glyph = tracked
+    ? "clock"
+    : s.category === "Coding"
+      ? "bolt"
+      : s.category === "Research"
+        ? "search"
+        : "chat";
+  return `<tr${tracked ? ' class="is-tracked"' : ""}><td class="col-title"><div class="session-title">${icon(glyph)}<div><strong>${esc(s.title)}</strong><small>${tracked ? "Tracked daily total" : esc(s.category)}</small></div></div></td><td class="col-tool"><span class="provider-pill">${mark(s.provider)}${esc(toolName(s))}</span></td><td class="col-date">${prettyDate(s.date)}${new Date(s.date) > Date.now() ? ' <small class="future-badge" title="Dated in the future: not counted in totals">Future</small>' : ""}</td><td class="numeric col-sends${s.messageCount == null ? " na" : ""}" data-unit="${s.messageCount === 1 ? "send" : "sends"}">${s.messageCount == null ? NOT_MEASURED : compact(s.messageCount)}</td><td class="numeric col-tokens${tracked ? " na" : ""}" data-unit="tokens">${tracked ? NOT_MEASURED : compact(s.inputTokens + s.outputTokens)}</td><td class="numeric col-cost${s.cost == null ? " na" : ""}">${s.cost == null ? NOT_MEASURED : cellMoney(s.cost)}</td><td class="col-time">${duration(s.duration)}</td><td class="col-actions"><div class="row-actions"><button class="icon-btn" data-edit="${esc(s.id)}" aria-label="Edit ${esc(s.title)}">${icon("edit")}</button><button class="icon-btn delete-btn" data-delete="${esc(s.id)}" aria-label="Delete ${esc(s.title)}">${icon("trash")}</button></div></td></tr>`;
 }
 function tableHTML(items, full = false) {
   const sorted = [...items].sort((a, b) => new Date(b.date) - new Date(a.date));
   const shown = full ? sorted : sorted.slice(0, 5);
-  return `<article class="panel sessions-panel"><div class="panel-heading"><div><h2>${full ? "Your sessions" : "Recent sessions"} <span class="count-tag">${items.length}</span></h2><p>${full ? "All your AI moments, neatly organized." : "A few moments from your AI journey"}</p></div>${!full ? `<a class="text-link" href="#sessions">View all sessions ${icon("arrow")}</a>` : ""}</div>
- <div class="table-toolbar"><label class="search-field">${icon("search")}<input id="search" type="search" placeholder="Search sessions…" aria-label="Search sessions" value="${esc(state.query)}" /></label><select id="provider-filter" aria-label="Filter by AI provider"><option value="all">All providers</option>${PROVIDERS.map((p) => `<option value="${p.id}" ${state.provider === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></div>
- ${shown.length ? `<div class="table-scroll"><table><thead><tr><th>Session</th><th>AI tool</th><th>Date</th><th>Observed sends</th><th>Logged tokens</th><th>Logged / est. cost</th><th>Time</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody>${shown.map((s) => `<tr><td class="col-title"><div class="session-title">${icon(s.category === "Coding" ? "bolt" : s.category === "Research" ? "search" : "chat")}<div><strong>${esc(s.title)}</strong><small>${esc(s.category)}</small></div></div></td><td class="col-tool"><span class="provider-pill">${mark(s.provider)}${esc(provider(s.provider).name)}</span></td><td class="col-date">${prettyDate(s.date)}${new Date(s.date) > Date.now() ? ' <small class="future-badge" title="Dated in the future: not counted in totals">Future</small>' : ""}</td><td class="numeric col-sends${s.messageCount == null ? " na" : ""}" data-unit="${s.messageCount === 1 ? "send" : "sends"}">${s.messageCount == null ? "—" : compact(s.messageCount)}</td><td class="numeric col-tokens${s.source === "extension" ? " na" : ""}" data-unit="tokens">${s.source === "extension" ? "Not measured" : compact(s.inputTokens + s.outputTokens)}</td><td class="numeric col-cost${s.cost == null ? " na" : ""}">${s.cost == null ? "Not measured" : cellMoney(s.cost)}</td><td class="col-time">${duration(s.duration)}</td><td class="col-actions"><div class="row-actions"><button class="icon-btn" data-edit="${esc(s.id)}" aria-label="Edit ${esc(s.title)}">${icon("edit")}</button><button class="icon-btn delete-btn" data-delete="${esc(s.id)}" aria-label="Delete ${esc(s.title)}">${icon("trash")}</button></div></td></tr>`).join("")}</tbody></table></div>` : `<div class="empty-state"><span>${icon("chat")}</span><h3>${state.query || state.provider !== "all" ? "No sessions match just yet." : "Your next idea starts here."}</h3><p>${state.query || state.provider !== "all" ? "Try another search or provider." : "Log your first AI session and watch your orbit take shape."}</p><button class="button primary" data-action="add">${icon("plus")} Log a session</button></div>`}
- <div class="table-bottom"><span>${shown.length.toLocaleString("en-US")} of ${plural(items.length, "session")}</span><span>${icon("lock")} Only you can see your data</span></div></article>`;
+  const filtering = state.query || state.provider !== "all";
+  const unmeasured = shown.some(
+    (s) => s.source === "extension" || s.messageCount == null,
+  );
+  return `<article class="panel sessions-panel"><div class="panel-heading"><div><h2>${full ? "All activity" : "Recent activity"} <span class="count-tag">${items.length.toLocaleString("en-US")}</span></h2><p>${full ? "Logged sessions and tracked daily totals, newest first." : "A few moments from your AI journey"}</p></div>${!full ? `<a class="text-link" href="#sessions">View all activity ${icon("arrow")}</a>` : ""}</div>
+ <div class="table-toolbar"><label class="search-field">${icon("search")}<input id="search" type="search" placeholder="Search activity…" aria-label="Search activity" value="${esc(state.query)}" /></label><select id="provider-filter" aria-label="Filter by AI provider"><option value="all">All providers</option>${PROVIDERS.map((p) => `<option value="${p.id}" ${state.provider === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></div>
+ ${shown.length ? `<div class="table-scroll"><table><thead><tr><th scope="col">Activity</th><th scope="col">AI tool</th><th scope="col">Date</th><th scope="col" title="Send actions observed by the browser extension">Sends</th><th scope="col" title="Tokens you logged by hand">Tokens</th><th scope="col" title="Logged or estimated cost of a logged session">Cost</th><th scope="col">Time</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>${shown.map(rowHTML).join("")}</tbody></table></div>` : `<div class="empty-state"><span>${icon("chat")}</span><h3>${filtering ? "Nothing matches just yet." : "Your next idea starts here."}</h3><p>${filtering ? "Try another search or provider." : "Log your first AI session and watch your orbit take shape."}</p><button class="button primary" data-action="add">${icon("plus")} Log a session</button></div>`}
+ <div class="table-bottom"><span>${shown.length.toLocaleString("en-US")} of ${plural(items.length, "entry", "entries")}${unmeasured ? ' · <span class="na-mark">—</span> not measured' : ""}</span><span>${icon("lock")} Only you can see your data</span></div></article>`;
 }
 // Colour follows the category, not its rank, so it means the same in every range.
 const CATEGORY_COLORS = {
@@ -494,20 +540,45 @@ const CATEGORY_COLORS = {
 };
 function insightsHTML(items) {
   const s = summarize(items);
-  const cats = ["Coding", "Writing", "Research", "Learning", "Other"]
+  const tools = timeByTool(items);
+  const tracked = items.some((x) => x.source === "extension");
+  const logged = items.filter((x) => x.source !== "extension");
+  const cats = Object.keys(CATEGORY_COLORS)
     .map((name) => ({
       name,
-      minutes: items
+      minutes: logged
         .filter((x) => x.category === name)
         .reduce((a, x) => a + x.duration, 0),
     }))
     .sort((a, b) => b.minutes - a.minutes);
-  const max = Math.max(...cats.map((x) => x.minutes), 1);
-  const favorite = PROVIDERS.map((p) => ({
-    ...p,
-    count: items.filter((x) => x.provider === p.id).length,
-  })).sort((a, b) => b.count - a.count)[0];
-  return `${statsHTML(items)}<div class="insights-grid"><article class="panel"><div class="panel-heading"><div><h2>Where your attention goes</h2><p>Minutes logged by activity</p></div>${icon("clock")}</div><div class="category-bars">${cats.map((c) => `<div><div><span>${c.name}</span><strong>${duration(c.minutes)}</strong></div><div class="bar-track"><i style="width:${(c.minutes / max) * 100}%;background:${CATEGORY_COLORS[c.name]}"></i></div></div>`).join("")}</div></article><article class="insight-card"><span class="insight-spark">✧</span><div class="eyebrow">YOUR CREATIVE COMPANION</div><h2>${s.sessions ? esc(favorite.name) : "Room to explore."}</h2><p>${s.sessions ? `You turned to ${esc(favorite.name)} for ${favorite.count.toLocaleString("en-US")} of your ${plural(s.sessions, "session")}. ${cats[0].minutes ? esc(cats[0].name) + " is where you spent the most time." : "Add session duration to discover your habits."}` : "Start logging sessions to discover the tools and activities that shape your days."}</p><div class="insight-foot">${icon("spark")} Insights grow with your curiosity.</div></article></div>${chartHTML(items)}`;
+  // Tracked records have no activity category, so with tracked data the
+  // breakdown is by tool (N3); categories describe logged sessions.
+  const bars = tracked
+    ? tools.slice(0, 6).map((tool) => ({ ...tool, color: toolColor(tool) }))
+    : cats.map((c) => ({ ...c, color: CATEGORY_COLORS[c.name] }));
+  const max = Math.max(...bars.map((x) => x.minutes), 1);
+  const totalMinutes = tools.reduce((sum, tool) => sum + tool.minutes, 0);
+  const top = tools[0];
+  const share = top && totalMinutes ? Math.round((100 * top.minutes) / totalMinutes) : 0;
+  const watchedDays = new Set(
+    items
+      .filter((x) => x.messageCount != null)
+      .map((x) => new Date(x.date).toDateString()),
+  ).size;
+  const story = !items.length
+    ? "Start logging sessions to discover the tools and activities that shape your days."
+    : [
+        totalMinutes
+          ? `${esc(top.name)} held ${share}% of your AI time.`
+          : `You turned to ${esc(top.name)} most often.`,
+        watchedDays
+          ? `You sent about ${plural(Math.round(s.totalMessages / watchedDays), "message")} a day while the extension was watching.`
+          : "",
+        cats[0].minutes ? `${esc(cats[0].name)} leads your logged sessions.` : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+  return `${statsHTML(items)}<div class="insights-grid"><article class="panel"><div class="panel-heading"><div><h2>Where your attention goes</h2><p>${tracked ? "Time by tool" : "Minutes logged by activity"}</p></div>${icon("clock")}</div><div class="category-bars">${bars.map((bar) => `<div><div><span>${esc(bar.name)}</span><strong>${duration(bar.minutes)}</strong></div><div class="bar-track"><i style="width:${(bar.minutes / max) * 100}%;background:${bar.color}"></i></div></div>`).join("")}</div></article><article class="insight-card"><span class="insight-spark">✧</span><div class="eyebrow">YOUR CREATIVE COMPANION</div><h2>${items.length ? esc(top.name) : "Room to explore."}</h2><p>${story}</p><div class="insight-foot">${icon("spark")} Insights grow with your curiosity.</div></article></div>${chartHTML(items)}`;
 }
 function settingsHTML() {
   return `<div class="settings-grid">${storageError ? `<section class="panel settings-card wide"><div><h2>Recover your stored data</h2><p>Saving is paused because your stored file could not be read. Download it before clearing this site’s storage in your browser settings, then reload and import a repaired backup.</p><button class="button secondary" data-action="recover">${icon("download")} Download stored file</button></div></section>` : ""}<section class="panel settings-card"><span class="settings-icon violet">${icon("lock")}</span><h2>Your data stays with you.</h2><p>Orbit saves sessions in this browser. No account, no server, and no API keys needed. Data doesn’t automatically sync between devices.</p><div class="setting-row"><div><strong>Current workspace</strong><small>${state.mode === "demo" ? "Sample sessions · explore freely" : `${plural(state.personal.length, "personal session")} saved`}</small></div><span class="badge">${state.mode === "demo" ? "Demo" : "Personal"}</span></div><div class="setting-row"><div><strong>${state.mode === "demo" ? "Start your own orbit" : "Explore the demo"}</strong><small>${state.mode === "demo" ? "A fresh space for your real sessions" : "Your personal sessions will stay saved"}</small></div><button class="button secondary" data-action="${state.mode === "demo" ? "personal" : "demo"}">Switch ${icon("arrow")}</button></div></section>
@@ -631,6 +702,8 @@ function openSession(session) {
       form.elements[name].disabled = true;
     dialog.querySelector("#cost-hint").textContent =
       "Browser records do not measure tokens, billing, or remaining limits. These fields are unavailable.";
+    dialog.querySelector(".modal-subtitle").textContent =
+      "A daily total from the browser extension. Importing a newer export replaces it, including edits made here.";
   }
   form.addEventListener("input", () => {
     // Unsaved edits block light dismissal (see the dialog handlers below).

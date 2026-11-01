@@ -2219,3 +2219,22 @@ input:disabled {
   border-top: 2px dashed #8062d2;
   opacity: 0.75;
 }
+
+/* N2: unavailable values are a quiet dash, explained once under the table. */
+.na-mark {
+  color: #756e80; /* 4.9:1 on white */
+}
+.sessions-panel th[title] {
+  text-decoration: underline dotted #c9c2d4;
+  text-underline-offset: 3px;
+  cursor: help;
+}
+.is-tracked .session-title > .icon {
+  color: #8062d2;
+}
+/* N9: the mobile AI-mix legend's last line was clipped by the card edge. */
+@media (max-width: 760px) {
+  .provider-legend {
+    padding-bottom: 20px;
+  }
+}

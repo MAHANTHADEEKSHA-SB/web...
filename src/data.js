@@ -352,64 +352,152 @@ export function saveSessions(sessions, storage = globalThis.localStorage) {
   }
 }
 
-/** Stable, clearly labeled sample data for exploring the interface. */
+/** Display name of the tool behind a record: the tracked site, else the provider. */
+export function toolName(session) {
+  if (session.source === "extension" && session.model?.endsWith(" website"))
+    return session.model.slice(0, -" website".length);
+  return PROVIDERS.find((item) => item.id === session.provider)?.name ?? "Other AI";
+}
+
+/**
+ * Minutes and observed sends per tool, largest first. Tracked records keep
+ * their site name (Perplexity, Copilot) instead of collapsing into Other AI.
+ */
+export function timeByTool(sessions) {
+  const tools = new Map();
+  for (const session of sessions) {
+    const name = toolName(session);
+    const row = tools.get(name) ?? {
+      name,
+      provider: session.provider,
+      minutes: 0,
+      sends: 0,
+      observed: false,
+    };
+    row.minutes += session.duration;
+    if (session.messageCount != null) {
+      row.sends += session.messageCount;
+      row.observed = true;
+    }
+    tools.set(name, row);
+  }
+  return [...tools.values()].sort(
+    (a, b) => b.minutes - a.minutes || a.name.localeCompare(b.name),
+  );
+}
+
+/** Deterministic pseudo-random numbers (mulberry32): organic but stable. */
+function seededRandom(seed) {
+  let t = seed >>> 0;
+  return () => {
+    t = (t + 0x6d2b79f5) >>> 0;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Stable, clearly labeled sample data for exploring the interface. It mirrors
+ * real use: the extension records web chats as daily totals with observed
+ * sends, and API or local-model work is logged by hand with tokens and cost.
+ * A provider never has both on the same day, so demo totals stay honest.
+ */
 export function createDemoSessions(now = new Date()) {
   const end = new Date(now);
-  const titles = [
-    ["Refactoring the dashboard", "Coding"],
-    ["A little help with the blank page", "Writing"],
-    ["Exploring a new idea", "Research"],
-    ["Learning something new", "Learning"],
-    ["Making sense of the docs", "Coding"],
-    ["A second pair of eyes", "Writing"],
-    ["Deep dive into design systems", "Research"],
-    ["Planning the next project", "Other"],
-    ["Untangling a tricky bug", "Coding"],
-    ["Turning notes into a story", "Writing"],
+  const random = seededRandom(7);
+  const tools = [
+    { site: "claude", provider: "claude", name: "Claude", minutes: 46, rate: 0.45, chance: 0.92 },
+    { site: "chatgpt", provider: "chatgpt", name: "ChatGPT", minutes: 34, rate: 0.62, chance: 0.82 },
+    { site: "gemini", provider: "gemini", name: "Gemini", minutes: 19, rate: 0.5, chance: 0.42 },
+    { site: "perplexity", provider: "other", name: "Perplexity", minutes: 13, rate: 0.85, chance: 0.4 },
   ];
-  const models = {
-    claude: "Claude Sonnet",
-    chatgpt: "GPT-4o",
-    gemini: "Gemini Pro",
-    other: "Other AI",
-  };
-  const providerOrder = [
-    "claude",
-    "chatgpt",
-    "claude",
-    "gemini",
-    "chatgpt",
-    "claude",
-    "other",
+  const logged = [
+    ["Batch-summarising research notes", "Research", "claude", "Claude API"],
+    ["Untangling a tricky bug", "Coding", "claude", "Claude API"],
+    ["Drafting the launch email", "Writing", "chatgpt", "OpenAI API"],
+    ["Learning the new framework", "Learning", "chatgpt", "OpenAI API"],
+    ["Turning notes into a story", "Writing", "gemini", "Gemini API"],
+    ["Refactoring the dashboard", "Coding", "other", "Local model"],
   ];
+  const today = startOfDay(end);
+  const elapsed = Math.max(0, (end - today) / 60000);
   const result = [];
   for (let offset = 29; offset >= 0; offset -= 1) {
-    const count = 2 + ((offset * 7 + 3) % 5);
-    for (let index = 0; index < count; index += 1) {
-      const sequence = (29 - offset) * 7 + index;
-      const date = startOfDay(end);
-      date.setDate(date.getDate() - offset);
-      date.setHours(8 + index * 2, (sequence * 13) % 60, 0, 0);
-      if (date > end)
-        date.setTime(
-          Math.max(
-            startOfDay(end).getTime(),
-            end.getTime() - (count - index) * 60000,
-          ),
-        );
-      const provider = providerOrder[(sequence + index) % providerOrder.length];
-      const [title, category] = titles[sequence % titles.length];
+    const day = startOfDay(end);
+    day.setDate(day.getDate() - offset);
+    const key = localDateKey(day);
+    const weekend = day.getDay() === 0 || day.getDay() === 6;
+    const trend = 0.85 + (0.3 * (29 - offset)) / 29; // gently busier lately
+    const mood = 0.7 + random() * 0.6; // day-to-day variation
+    // Today is still in progress: scale by the share of a 16-hour day so far.
+    const share = offset === 0 ? Math.min(1, elapsed / 960) : 1;
+    const scale = (weekend ? 0.45 : 1) * trend * mood * share;
+    const manual =
+      !weekend && random() < 0.38
+        ? logged[Math.floor(random() * logged.length)]
+        : null;
+    const before = result.length;
+    for (const tool of tools) {
+      if (manual?.[2] === tool.provider) continue;
+      if (random() > tool.chance * (weekend ? 0.8 : 1)) continue;
+      let minutes = tool.minutes * scale * (0.55 + random() * 0.9);
+      if (offset === 0) minutes = Math.min(minutes, elapsed);
+      minutes = Math.round(minutes * 100) / 100;
+      if (minutes < 0.5) continue;
       result.push(
         validateSession({
-          id: `demo-${offset}-${index}`,
-          provider,
-          model: models[provider],
-          title,
-          date: date.toISOString(),
-          duration: 8 + ((sequence * 11) % 48),
-          inputTokens: 1650 + ((sequence * 967) % 14500),
-          outputTokens: 760 + ((sequence * 421) % 5600),
-          category,
+          id: `orbit-extension-demo-${key}-${tool.site}`,
+          provider: tool.provider,
+          model: `${tool.name} website`,
+          title: `${tool.name} · browser activity`,
+          date: day.toISOString(),
+          duration: minutes,
+          source: "extension",
+          messageCount: Math.max(
+            1,
+            Math.round(minutes * tool.rate * (0.7 + random() * 0.6)),
+          ),
+          category: "Other",
+        }),
+      );
+    }
+    if (manual) {
+      const at = new Date(day);
+      at.setHours(10 + Math.floor(random() * 7), Math.floor(random() * 60), 0, 0);
+      if (at <= end) {
+        const [title, category, provider, model] = manual;
+        result.push(
+          validateSession({
+            id: `demo-${key}-logged`,
+            provider,
+            model,
+            title,
+            date: at.toISOString(),
+            duration: 10 + Math.round(random() * 45),
+            inputTokens: 4000 + Math.round(random() * 56000),
+            outputTokens: 900 + Math.round(random() * 11000),
+            category,
+          }),
+        );
+      }
+    }
+    if (result.length === before) {
+      // Every demo day has some activity, even a barely started today.
+      result.push(
+        validateSession({
+          id: `orbit-extension-demo-${key}-claude`,
+          provider: "claude",
+          model: "Claude website",
+          title: "Claude · browser activity",
+          date: day.toISOString(),
+          duration:
+            offset === 0
+              ? Math.max(0.1, Math.min(elapsed, 6))
+              : Math.round((6 + random() * 9) * 100) / 100,
+          source: "extension",
+          messageCount: 1 + Math.floor(random() * 5),
+          category: "Other",
         }),
       );
     }
