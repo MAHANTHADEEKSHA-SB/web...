@@ -8,6 +8,7 @@ import {
   makeExport,
   MAX_GAP_MS,
   settle,
+  recordSend,
   siteForUrl,
 } from "../extension/core.js";
 import { parseImport } from "../src/data.js";
@@ -126,8 +127,8 @@ test("exports are accepted by the dashboard and stable IDs allow cumulative upda
   const second = parseImport(JSON.stringify(makeExport(state)));
   assert.equal(first[0].id, second[0].id);
   assert.equal(second[0].duration, 1);
-  assert.equal(second[0].inputTokens, 0);
-  assert.equal(second[0].cost, 0);
+  assert.equal(second[0].inputTokens, null);
+  assert.equal(second[0].cost, null);
 });
 
 test("Other AI sources retain distinct identities and no page metadata", () => {
@@ -147,4 +148,50 @@ test("Other AI sources retain distinct identities and no page metadata", () => {
   assert.ok(result.every((record) => record.provider === "other"));
   assert.notEqual(result[0].id, result[1].id);
   assert.equal(JSON.stringify(state).includes("private-topic"), false);
+});
+
+test("observed sends create zero-time records, de-duplicate event IDs and never invent token use", () => {
+  let state = initialState("observed-test");
+  assert.equal(recordSend(state, claude, "one", start), state);
+  state = { ...state, enabled: true };
+  state = recordSend(state, claude, "one", start);
+  state = recordSend(state, claude, "one", start + 100);
+  state = recordSend(state, claude, "two", start + 1000);
+  const exported = parseImport(JSON.stringify(makeExport(state)));
+  assert.equal(exported.length, 1);
+  assert.equal(exported[0].messageCount, 2);
+  assert.equal(exported[0].duration, 0);
+  assert.equal(exported[0].inputTokens, null);
+  assert.equal(exported[0].outputTokens, null);
+  assert.equal(exported[0].cost, null);
+  assert.equal(exported[0].source, "extension");
+  assert.equal(recordSend(state, claude, "bad event!", start), state);
+});
+
+test("time sampling preserves observed counts and legacy records remain explicitly unobserved", () => {
+  let state = advance(enabled(), start, claude);
+  state = recordSend(state, claude, "first-send", start + 10000);
+  state = advance(state, start + 30000, null);
+  assert.equal(exportSessions(state)[0].messageCount, 1);
+  assert.equal(exportSessions(state)[0].duration, 0.5);
+  const old = enabled();
+  const date = new Date(start).toISOString();
+  old.buckets["old-legacy"] = {
+    day: localDay(start),
+    site: claude,
+    date,
+    milliseconds: 30000,
+  };
+  const result = parseImport(JSON.stringify(makeExport(old)));
+  assert.equal(result[0].messageCount, null);
+  assert.equal(result[0].cost, null);
+});
+
+test("zero observed sends require a ready page observer; missing observers stay unknown", () => {
+  let ready = advance(enabled(), start, claude, true);
+  ready = advance(ready, start + 30000, null);
+  assert.equal(exportSessions(ready)[0].messageCount, 0);
+  let absent = advance(enabled(), start, claude, false);
+  absent = advance(absent, start + 30000, null);
+  assert.equal(exportSessions(absent)[0].messageCount, null);
 });

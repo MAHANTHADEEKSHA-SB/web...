@@ -122,6 +122,15 @@ export function validateSession(value) {
   ) {
     throw new Error("Enter a valid session date.");
   }
+  const id = textField(value.id, "Session ID", 128) || newId();
+  const tracked =
+    value.source === "extension" || id.startsWith("orbit-extension-");
+  const messageCount =
+    tracked && value.messageCount != null
+      ? numeric(value.messageCount, "Observed sends")
+      : null;
+  if (messageCount !== null && !Number.isInteger(messageCount))
+    throw new Error("Observed send counts must be whole numbers.");
   const inputTokens = numeric(value.inputTokens, "Input tokens");
   const outputTokens = numeric(value.outputTokens, "Output tokens");
   if (!Number.isInteger(inputTokens) || !Number.isInteger(outputTokens))
@@ -129,7 +138,6 @@ export function validateSession(value) {
   const category = value.category || "Other";
   if (!CATEGORIES.includes(category))
     throw new Error("Choose a valid session category.");
-  const id = textField(value.id, "Session ID", 128) || newId();
   return {
     id,
     provider: provider.id,
@@ -137,13 +145,17 @@ export function validateSession(value) {
     title,
     date: date.toISOString(),
     duration: numeric(value.duration, "Duration"),
-    inputTokens,
-    outputTokens,
-    cost: numeric(
-      value.cost,
-      "Cost",
-      calculateCost(provider.id, inputTokens, outputTokens),
-    ),
+    source: tracked ? "extension" : "manual",
+    messageCount,
+    inputTokens: tracked ? null : inputTokens,
+    outputTokens: tracked ? null : outputTokens,
+    cost: tracked
+      ? null
+      : numeric(
+          value.cost,
+          "Cost",
+          calculateCost(provider.id, inputTokens, outputTokens),
+        ),
     category,
   };
 }
@@ -156,11 +168,15 @@ export function summarize(sessions) {
     totalCost: 0,
     totalMinutes: 0,
     activeDays: 0,
+    totalMessages: 0,
+    observedRecords: 0,
   };
   for (const session of sessions) {
     summary.totalTokens += session.inputTokens + session.outputTokens;
     summary.totalCost += session.cost;
     summary.totalMinutes += session.duration;
+    summary.totalMessages += session.messageCount || 0;
+    if (session.messageCount != null) summary.observedRecords += 1;
     activeDays.add(localDateKey(new Date(session.date)));
   }
   summary.activeDays = activeDays.size;
@@ -222,6 +238,7 @@ export function dailyUsage(sessions, days = 14, now = new Date()) {
       cost: 0,
       sessions: 0,
       minutes: 0,
+      messages: null,
     });
   }
   const buckets = new Map(rows.map((row) => [row.date, row]));
@@ -234,6 +251,8 @@ export function dailyUsage(sessions, days = 14, now = new Date()) {
     row.cost += session.cost;
     row.sessions += 1;
     row.minutes += session.duration;
+    if (session.messageCount != null)
+      row.messages = (row.messages || 0) + session.messageCount;
   }
   return rows;
 }

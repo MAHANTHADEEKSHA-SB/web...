@@ -101,6 +101,8 @@ test("metrics sum independently and count distinct local active days", () => {
     totalCost: 0.533,
     totalMinutes: 40,
     activeDays: 1,
+    totalMessages: 0,
+    observedRecords: 0,
   });
   assert.deepEqual(summarize([]), {
     sessions: 0,
@@ -108,6 +110,8 @@ test("metrics sum independently and count distinct local active days", () => {
     totalCost: 0,
     totalMinutes: 0,
     activeDays: 0,
+    totalMessages: 0,
+    observedRecords: 0,
   });
 });
 
@@ -256,4 +260,57 @@ test("demo data is deterministic, complete, unique and never in the future", () 
   assert.ok(sessions.every((session) => new Date(session.date) <= now));
   assert.equal(summarize(sessions).activeDays, 30);
   assert.equal(parseImport(exportData(sessions)).length, sessions.length);
+});
+
+test("extension imports preserve observations, distinguish unknown data, and survive export/edit normalization", () => {
+  const tracked = validateSession(
+    example({
+      id: "orbit-extension-record",
+      messageCount: 8,
+      source: "extension",
+      cost: 25,
+    }),
+  );
+  assert.equal(tracked.messageCount, 8);
+  assert.equal(tracked.inputTokens, null);
+  assert.equal(tracked.cost, null);
+  const legacy = validateSession(
+    example({ id: "orbit-extension-legacy", cost: 0 }),
+  );
+  assert.equal(legacy.messageCount, null);
+  assert.equal(legacy.cost, null);
+  const edit = validateSession({ ...tracked, title: "Updated", duration: 15 });
+  assert.equal(edit.messageCount, 8);
+  const roundtrip = parseImport(exportData([edit, legacy]));
+  assert.deepEqual(roundtrip, [edit, legacy]);
+  const metrics = summarize(roundtrip);
+  assert.equal(metrics.totalMessages, 8);
+  assert.equal(metrics.observedRecords, 1);
+  assert.equal(metrics.totalTokens, 0);
+  assert.equal(metrics.totalCost, 0);
+  const chart = dailyUsage(roundtrip, 1, new Date(2026, 9, 30, 23, 59));
+  assert.equal(chart[0].messages, 8);
+  assert.throws(() => validateSession({ ...tracked, messageCount: -1 }));
+  assert.throws(() => validateSession({ ...tracked, messageCount: 1.5 }));
+});
+
+test("daily observed charts preserve unknown gaps rather than manufacturing zeros", () => {
+  const now = new Date(2026, 9, 31, 23);
+  const tracked = validateSession(
+    example({
+      id: "orbit-extension-measured",
+      date: new Date(2026, 9, 31, 10).toISOString(),
+      messageCount: 0,
+    }),
+  );
+  const legacy = validateSession(
+    example({
+      id: "orbit-extension-unknown",
+      date: new Date(2026, 9, 30, 10).toISOString(),
+    }),
+  );
+  assert.deepEqual(
+    dailyUsage([tracked, legacy], 3, now).map((day) => day.messages),
+    [null, null, 0],
+  );
 });

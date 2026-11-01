@@ -62,6 +62,7 @@ const compact = (n) =>
   }).format(n);
 const money = (n) => "$" + n.toFixed(2);
 const duration = (n) => {
+  if (n > 0 && n < 1) return `${Math.max(1, Math.round(n * 60))}s`;
   const m = Math.round(n);
   return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
 };
@@ -102,7 +103,7 @@ const state = {
   days: 30,
   provider: "all",
   query: "",
-  chart: mode === "personal" ? "minutes" : "tokens",
+  chart: "minutes",
   mode,
   personal: stored,
   demo: createDemoSessions(),
@@ -125,7 +126,7 @@ function toast(text) {
 }
 function setMode(next) {
   state.mode = next;
-  state.chart = next === "personal" ? "minutes" : "tokens";
+  state.chart = "minutes";
   try {
     localStorage.setItem("orbit-mode", next);
   } catch {
@@ -172,7 +173,7 @@ function shell() {
  <main id="main"><div class="page-heading"><div class="eyebrow">A LITTLE CLARITY FOR YOUR AI LIFE</div><div class="heading-row"><div><h1>${{ overview: "Your AI, in perspective.", sessions: "Every session, in one place.", insights: "Make sense of your habits.", settings: "A space that’s yours." }[state.view]}</h1><p class="subtitle">${{ overview: "A mindful look at the tools powering your everyday.", sessions: "The prompts, projects, and little breakthroughs along the way.", insights: "Discover where your time and creativity go.", settings: "Your preferences, your data, your control." }[state.view]}</p></div><div class="heading-actions"><button class="button secondary" data-action="export">${icon("download")}<span>Export</span></button><button class="button primary" data-action="add">${icon("plus")} Log session</button></div></div></div>
  ${storageError ? `<div class="error-banner" role="alert">${esc(storageError)} Export any accessible data before changing browser storage.</div>` : ""}
  ${state.mode === "demo" ? `<div class="demo-banner"><span>${icon("spark")} <strong>A little inspiration.</strong> You’re exploring sample data.</span><button data-action="personal">Start my own orbit ${icon("arrow")}</button></div>` : ""}
- ${state.mode === "personal" && state.view === "overview" ? `<div class="tracking-banner"><span>${icon("clock")} <strong>Make time for your ideas.</strong> Let the optional extension track active AI time.</span><a href="#settings">Set up tracking ${icon("arrow")}</a></div>` : ""}<div id="content"></div>
+ ${state.mode === "personal" && state.view === "overview" ? `<div class="tracking-banner"><span>${icon("clock")} <strong>Make time for your ideas.</strong> Track active AI time and observed send actions.</span><a href="#settings">Set up tracking ${icon("arrow")}</a></div>` : ""}<div id="content"></div>
  <footer><span><span class="tiny-orbit">◎</span> A little intention goes a long way.</span><span>Made for your curious mind <span class="footer-star">✧</span></span></footer></main></div>`;
   document.querySelectorAll("[data-action]").forEach(bindAction);
 }
@@ -183,34 +184,34 @@ function statsHTML(items) {
   const s = summarize(items);
   return `<div class="stats-grid">${[
     [
-      items.some((item) => item.id.startsWith("orbit-extension-")) ? "Activity records" : "Total sessions",
-      compact(s.sessions),
-      "chat",
-      "peach",
-      `${s.activeDays} active day${s.activeDays === 1 ? "" : "s"}${items.some((item) => item.id.startsWith("orbit-extension-")) ? " · includes daily totals" : " in this period"}`,
-    ],
-    [
-      "Tokens used",
-      compact(s.totalTokens),
-      "bolt",
-      "violet",
-      "Input + output tokens logged",
-    ],
-    [
-      "Estimated cost",
-      money(s.totalCost),
-      "money",
-      "green",
-      "Based on your logged estimates",
-    ],
-    [
       "Time with AI",
       duration(s.totalMinutes),
       "clock",
       "blue",
-      s.sessions
-        ? `${duration(s.totalMinutes / s.sessions)} average per session`
-        : "Your next idea starts here",
+      "Active time recorded + any manual logs",
+    ],
+    [
+      "Observed sends",
+      s.observedRecords ? compact(s.totalMessages) : "—",
+      "chat",
+      "violet",
+      s.observedRecords
+        ? "Send actions observed, not provider billing"
+        : "Import from the updated extension",
+    ],
+    [
+      "Activity records",
+      compact(s.sessions),
+      "history",
+      "peach",
+      "Manual sessions + daily browser totals",
+    ],
+    [
+      "Active days",
+      compact(s.activeDays),
+      "sun",
+      "green",
+      "Days with recorded activity in this period",
     ],
   ]
     .map(
@@ -249,16 +250,24 @@ function chartHTML(items) {
     right = 12,
     top = 15,
     bottom = 26;
-  const points = rows.map((r, i) => [
-    left + (i * (W - left - right)) / Math.max(rows.length - 1, 1),
-    H - bottom - (r[state.chart] / max) * (H - top - bottom),
-  ]);
+  const points = rows.map((r, i) =>
+    state.chart === "messages" && r.messages == null
+      ? null
+      : [
+          left + (i * (W - left - right)) / Math.max(rows.length - 1, 1),
+          H - bottom - (r[state.chart] / max) * (H - top - bottom),
+        ],
+  );
   const line = points
-    .map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`)
+    .map((point, i) =>
+      point
+        ? `${i && points[i - 1] ? "L" : "M"}${point[0].toFixed(1)},${point[1].toFixed(1)}`
+        : "",
+    )
     .join(" ");
   const area = `${line} L${W - right},${H - bottom} L${left},${H - bottom} Z`;
   const every = Math.max(1, Math.floor(rows.length / 6));
-  return `<article class="panel usage-panel"><div class="panel-heading"><div><h2>Usage over time</h2><p>A rhythm of curiosity and creation</p></div><select class="small-select" id="chart-metric" aria-label="Chart metric"><option value="minutes" ${state.chart === "minutes" ? "selected" : ""}>Time</option><option value="tokens" ${state.chart === "tokens" ? "selected" : ""}>Tokens</option><option value="sessions" ${state.chart === "sessions" ? "selected" : ""}>Sessions</option><option value="cost" ${state.chart === "cost" ? "selected" : ""}>Cost</option></select></div><div class="chart-legend"><i></i>${state.chart === "tokens" ? "Total tokens" : state.chart === "cost" ? "Estimated cost" : state.chart === "minutes" ? "Time in minutes" : "Sessions"}<span>${state.days ? "Last " + state.days + " days" : "Up to the last 90 days"}</span></div>
+  return `<article class="panel usage-panel"><div class="panel-heading"><div><h2>Usage over time</h2><p>A rhythm of curiosity and creation</p></div><select class="small-select" id="chart-metric" aria-label="Chart metric"><option value="minutes" ${state.chart === "minutes" ? "selected" : ""}>Time</option><option value="messages" ${state.chart === "messages" ? "selected" : ""}>Observed sends</option><option value="tokens" ${state.chart === "tokens" ? "selected" : ""}>Logged tokens</option><option value="sessions" ${state.chart === "sessions" ? "selected" : ""}>Activity records</option><option value="cost" ${state.chart === "cost" ? "selected" : ""}>Logged / estimated cost</option></select></div><div class="chart-legend"><i></i>${state.chart === "messages" ? "Observed send actions" : state.chart === "tokens" ? "Manually logged tokens" : state.chart === "cost" ? "Estimated cost" : state.chart === "minutes" ? "Time in minutes" : "Activity records"}<span>${state.days ? "Last " + state.days + " days" : "Up to the last 90 days"}</span></div>
  <div class="chart-wrap"><svg class="usage-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily ${state.chart} over ${dayCount} days"><defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#9b83e9" stop-opacity=".28"/><stop offset="100%" stop-color="#9b83e9" stop-opacity=".02"/></linearGradient></defs>${[
    0, 1, 2, 3, 4,
  ]
@@ -268,7 +277,7 @@ function chartHTML(items) {
    })
    .join(
      "",
-   )}<path d="${area}" fill="url(#chart-fill)"/><path d="${line}" fill="none" stroke="#9476e2" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>${points.map(([x, y], i) => `<circle class="chart-point" cx="${x}" cy="${y}" r="5" fill="#9476e2"><title>${esc(rows[i].label)}: ${state.chart === "cost" ? money(values[i]) : values[i].toLocaleString()} ${state.chart === "cost" ? "USD" : state.chart}</title></circle>`).join("")}${rows.map((r, i) => (i % every === 0 && i < rows.length - 1 ? `<text x="${points[i][0]}" y="${H - 3}" text-anchor="middle">${esc(r.label)}</text>` : "")).join("")}</svg></div><div class="chart-caption">${icon("spark")} Small conversations. Big possibilities.</div></article>`;
+   )}${state.chart === "messages" && values.every((value) => value == null) ? `<text x="${W / 2}" y="${H / 2}" text-anchor="middle">No observed send data in this period</text>` : ""}<path d="${area}" fill="${state.chart === "messages" ? "none" : "url(#chart-fill)"}"/><path d="${line}" fill="none" stroke="#9476e2" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>${points.map((point, i) => (point ? `<circle class="chart-point ${state.chart === "messages" ? "observation-point" : ""}" cx="${point[0]}" cy="${point[1]}" r="5" fill="#9476e2"><title>${esc(rows[i].label)}: ${state.chart === "cost" ? money(values[i]) : values[i].toLocaleString()} ${state.chart === "cost" ? "USD" : state.chart}</title></circle>` : "")).join("")}${rows.map((r, i) => (i % every === 0 && i < rows.length - 1 ? `<text x="${left + (i * (W - left - right)) / Math.max(rows.length - 1, 1)}" y="${H - 3}" text-anchor="middle">${esc(r.label)}</text>` : "")).join("")}</svg></div><div class="chart-caption">${icon("spark")} ${state.chart === "messages" ? "Only observed dates are plotted; gaps are unavailable. Counts aren’t confirmed responses or remaining limits." : "Time is recorded from active tabs. Tokens and costs are only available when manually logged."}</div></article>`;
 }
 function breakdownHTML(items) {
   const count = items.length;
@@ -291,7 +300,7 @@ function tableHTML(items, full = false) {
   const shown = full ? sorted : sorted.slice(0, 5);
   return `<article class="panel sessions-panel"><div class="panel-heading"><div><h2>${full ? "Your sessions" : "Recent sessions"} <span class="count-tag">${items.length}</span></h2><p>${full ? "All your AI moments, neatly organized." : "A few moments from your AI journey"}</p></div>${!full ? `<a class="text-link" href="#sessions">View all sessions ${icon("arrow")}</a>` : ""}</div>
  <div class="table-toolbar"><label class="search-field">${icon("search")}<input id="search" type="search" placeholder="Search sessions…" aria-label="Search sessions" value="${esc(state.query)}" /></label><select id="provider-filter" aria-label="Filter by AI provider"><option value="all">All providers</option>${PROVIDERS.map((p) => `<option value="${p.id}" ${state.provider === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></div>
- ${shown.length ? `<div class="table-scroll"><table><thead><tr><th>Session</th><th>AI tool</th><th>Date</th><th>Tokens</th><th>Est. cost</th><th>Time</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody>${shown.map((s) => `<tr><td><div class="session-title">${icon(s.category === "Coding" ? "bolt" : s.category === "Research" ? "search" : "chat")}<div><strong>${esc(s.title)}</strong><small>${esc(s.category)}</small></div></div></td><td><span class="provider-pill">${mark(s.provider)}${esc(provider(s.provider).name)}</span></td><td>${prettyDate(s.date)}</td><td class="numeric">${compact(s.inputTokens + s.outputTokens)}</td><td class="numeric">${money(s.cost)}</td><td>${duration(s.duration)}</td><td><div class="row-actions"><button class="icon-btn" data-edit="${esc(s.id)}" aria-label="Edit ${esc(s.title)}">${icon("edit")}</button><button class="icon-btn delete-btn" data-delete="${esc(s.id)}" aria-label="Delete ${esc(s.title)}">${icon("trash")}</button></div></td></tr>`).join("")}</tbody></table></div>` : `<div class="empty-state"><span>${icon("chat")}</span><h3>${state.query || state.provider !== "all" ? "No sessions match just yet." : "Your next idea starts here."}</h3><p>${state.query || state.provider !== "all" ? "Try another search or provider." : "Log your first AI session and watch your orbit take shape."}</p><button class="button primary" data-action="add">${icon("plus")} Log a session</button></div>`}
+ ${shown.length ? `<div class="table-scroll"><table><thead><tr><th>Session</th><th>AI tool</th><th>Date</th><th>Observed sends</th><th>Logged tokens</th><th>Logged / est. cost</th><th>Time</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody>${shown.map((s) => `<tr><td><div class="session-title">${icon(s.category === "Coding" ? "bolt" : s.category === "Research" ? "search" : "chat")}<div><strong>${esc(s.title)}</strong><small>${esc(s.category)}</small></div></div></td><td><span class="provider-pill">${mark(s.provider)}${esc(provider(s.provider).name)}</span></td><td>${prettyDate(s.date)}</td><td class="numeric">${s.messageCount == null ? "—" : compact(s.messageCount)}</td><td class="numeric">${s.source === "extension" ? "Not measured" : compact(s.inputTokens + s.outputTokens)}</td><td class="numeric">${s.cost == null ? "Not measured" : money(s.cost)}</td><td>${duration(s.duration)}</td><td><div class="row-actions"><button class="icon-btn" data-edit="${esc(s.id)}" aria-label="Edit ${esc(s.title)}">${icon("edit")}</button><button class="icon-btn delete-btn" data-delete="${esc(s.id)}" aria-label="Delete ${esc(s.title)}">${icon("trash")}</button></div></td></tr>`).join("")}</tbody></table></div>` : `<div class="empty-state"><span>${icon("chat")}</span><h3>${state.query || state.provider !== "all" ? "No sessions match just yet." : "Your next idea starts here."}</h3><p>${state.query || state.provider !== "all" ? "Try another search or provider." : "Log your first AI session and watch your orbit take shape."}</p><button class="button primary" data-action="add">${icon("plus")} Log a session</button></div>`}
  <div class="table-bottom"><span>${shown.length} of ${items.length} sessions</span><span>${icon("lock")} Only you can see your data</span></div></article>`;
 }
 function insightsHTML(items) {
@@ -314,8 +323,8 @@ function insightsHTML(items) {
 function settingsHTML() {
   return `<div class="settings-grid">${storageError ? `<section class="panel settings-card wide"><div><h2>Recover your stored data</h2><p>Saving is paused because your stored file could not be read. Download it before clearing this site’s storage in your browser settings, then reload and import a repaired backup.</p><button class="button secondary" data-action="recover">${icon("download")} Download stored file</button></div></section>` : ""}<section class="panel settings-card"><span class="settings-icon violet">${icon("lock")}</span><h2>Your data stays with you.</h2><p>Orbit saves sessions in this browser. No account, no server, and no API keys needed. Data doesn’t automatically sync between devices.</p><div class="setting-row"><div><strong>Current workspace</strong><small>${state.mode === "demo" ? "Sample sessions · explore freely" : `${state.personal.length} personal sessions saved`}</small></div><span class="badge">${state.mode === "demo" ? "Demo" : "Personal"}</span></div><div class="setting-row"><div><strong>${state.mode === "demo" ? "Start your own orbit" : "Explore the demo"}</strong><small>${state.mode === "demo" ? "A fresh space for your real sessions" : "Your personal sessions will stay saved"}</small></div><button class="button secondary" data-action="${state.mode === "demo" ? "personal" : "demo"}">Switch ${icon("arrow")}</button></div></section>
  <section class="panel settings-card"><span class="settings-icon peach">${icon("download")}</span><h2>A backup for your peace of mind.</h2><p>Clearing browser data removes saved sessions. Export a JSON backup regularly, then import it on another browser or device.</p><div class="settings-buttons"><button class="button secondary" data-action="export">${icon("download")} Export JSON</button><button class="button secondary" data-action="csv">${icon("download")} Export CSV</button><button class="button secondary" data-action="import">${icon("upload")} Import JSON</button></div><p class="fine-print">Imports merge into your personal workspace. Matching session IDs are replaced after confirmation.</p></section>
- <section class="panel settings-card wide"><div class="settings-icon green">${icon("globe")}</div><div><h2>Honest numbers. Useful perspective.</h2><p>Log your sessions, duration, and optional token counts. Cost estimates use illustrative provider rates, not your subscription bill. Enter an actual cost when you know it. A subscription chat can have a $0 incremental cost.</p><p>A website can’t read other tabs or your AI accounts. Session logs are entered by you; automatic website time tracking requires the optional browser extension.</p><a class="text-link" href="https://github.com/MAHANTHADEEKSHA-SB/web..." target="_blank" rel="noreferrer">Setup & free hosting guide ${icon("arrow")}</a></div></section>
- <section class="panel settings-card wide extension-setup"><span class="settings-icon violet">${icon("clock")}</span><div><span class="eyebrow">LESS LOGGING. MORE CREATING.</span><h2>Let Orbit keep time.</h2><p>The optional Chrome / Edge extension measures active time on ChatGPT, Claude, Gemini, Perplexity, and Copilot. It starts paused, skips idle time, and saves only daily totals on your device. It never reads prompts or conversations.</p><ol class="setup-steps"><li>Download and unzip the extension below.</li><li>Open your browser’s Extensions page, enable Developer mode, choose <strong>Load unpacked</strong>, and select the unzipped folder.</li><li>Pin Orbit, open it, and turn tracking on when you’re ready.</li><li>Choose <strong>Export for Orbit</strong> in the extension, then import that JSON file here. Repeated imports update the same daily totals.</li></ol><div class="settings-buttons"><a class="button primary" href="./orbit-extension.zip" download>${icon("download")} Download extension</a><button class="button secondary" data-action="import">${icon("upload")} Import tracked time</button></div><p class="fine-print">You grant access to the listed AI sites during installation. You can pause tracking or remove the extension at any time. Daily activity becomes one record per tool per day, not a count of conversations. Tokens and costs aren’t measured.</p></div></section>
+ <section class="panel settings-card wide"><div class="settings-icon green">${icon("globe")}</div><div><h2>Honest numbers. Useful perspective.</h2><p>The dashboard prioritizes recorded time and observed send actions. Token counts and costs are optional manual entries. Cost estimates use illustrative provider rates, not your subscription bill. Enter an actual cost when you know it. A subscription chat can have a $0 incremental cost.</p><p>A website can’t read other tabs or your AI accounts. Manual session logs are entered by you. The browser extension adds active time and observed send-action counts. It does not access official token usage, invoices, or remaining message limits.</p><a class="text-link" href="https://github.com/MAHANTHADEEKSHA-SB/web..." target="_blank" rel="noreferrer">Setup & free hosting guide ${icon("arrow")}</a></div></section>
+ <section class="panel settings-card wide extension-setup"><span class="settings-icon violet">${icon("clock")}</span><div><span class="eyebrow">LESS LOGGING. MORE CREATING.</span><h2>Let Orbit keep time.</h2><p>The optional Chrome / Edge extension records active time and observed message-send actions on ChatGPT, Claude, Gemini, Perplexity, and Copilot. It starts paused and keeps only daily totals on your device. It watches send controls without reading or storing prompts or replies.</p><ol class="setup-steps"><li>Download and unzip the extension below.</li><li>Open your browser’s Extensions page, enable Developer mode, choose <strong>Load unpacked</strong>, and select the unzipped folder.</li><li>If updating, replace the extension’s files and click Reload on the Extensions page. Refresh your AI tabs. Pin Orbit, open it, and enable tracking; updates start paused.</li><li>Choose <strong>Export for Orbit</strong> in the extension, then import that JSON file here. Repeated imports update the same daily totals.</li></ol><div class="settings-buttons"><a class="button primary" href="./orbit-extension.zip" download>${icon("download")} Download extension</a><button class="button secondary" data-action="import">${icon("upload")} Import tracked time</button></div><p class="fine-print">You grant access to the listed AI sites during installation. You can pause tracking or remove the extension at any time. Daily activity becomes one record per tool per day, not a count of conversations. Send controls vary between sites and languages, so counts may be missed. Observed sends are not confirmed successful replies or official usage quotas. Tokens, billing, and remaining limits aren’t measured.</p></div></section>
  <section class="panel settings-card wide danger-zone"><div><h2>Clear personal sessions</h2><p>Permanently remove the personal sessions saved in this browser. Export a backup first.</p></div><button class="button danger" data-action="clear">${icon("trash")} Clear data</button></section></div>`;
 }
 function renderContent() {
@@ -419,12 +428,26 @@ function dateValue(date = new Date()) {
 function openSession(session) {
   const dialog = document.querySelector("#session-dialog");
   const p = session?.provider || "claude";
-  dialog.innerHTML = `<form id="session-form"><div class="modal-header"><span class="settings-icon violet">${icon("spark")}</span><button type="button" class="icon-btn" data-close aria-label="Close">${icon("x")}</button></div><h2>${session ? "A little fine-tuning." : "What did you create today?"}</h2><p class="modal-subtitle">${state.mode === "demo" ? "Changes here affect sample data only. Switch to your own orbit to save real sessions." : "Every session is a small step toward something."}</p><label>Session title<input name="title" required maxlength="120" placeholder="e.g. Brainstorming my next big idea" value="${esc(session?.title || "")}" autofocus /></label><div class="form-grid"><label>AI tool<select name="provider">${PROVIDERS.map((x) => `<option value="${x.id}" ${p === x.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label><label>Activity<select name="category">${["Writing", "Coding", "Research", "Learning", "Other"].map((c) => `<option ${session?.category === c ? "selected" : ""}>${c}</option>`).join("")}</select></label><label>Date & time<input name="date" type="datetime-local" required max="${dateValue()}" value="${dateValue(session?.date)}" /></label><label>Duration (minutes)<span class="unit-input"><input name="duration" aria-label="Duration (minutes)" type="number" min="0" max="1440" step="any" value="${session?.duration ?? ""}" placeholder="e.g. 20" /><span aria-hidden="true">min</span></span></label></div><details ${session && (session.inputTokens || session.outputTokens || session.cost) ? "open" : ""}><summary>Tokens, model & cost <span>Optional</span></summary><label>Model<input name="model" maxlength="80" placeholder="e.g. Claude Sonnet" value="${esc(session?.model || "")}" /></label><div class="form-grid"><label>Input tokens<span class="unit-input"><input name="inputTokens" aria-label="Input tokens" type="number" min="0" step="1" value="${session?.inputTokens ?? ""}" placeholder="e.g. 1500" aria-describedby="token-help input-token-help" /><span aria-hidden="true">tokens</span></span><small class="field-help" id="input-token-help">Text sent to the AI, including context.</small></label><label>Output tokens<span class="unit-input"><input name="outputTokens" aria-label="Output tokens" type="number" min="0" step="1" value="${session?.outputTokens ?? ""}" placeholder="e.g. 500" aria-describedby="token-help output-token-help" /><span aria-hidden="true">tokens</span></span><small class="field-help" id="output-token-help">Text generated in the AI’s reply.</small></label></div><p class="fine-print" id="token-help">Enter whole token counts, not words or thousands: enter 1500 for 1.5k tokens. Use your provider’s usage report if available, or leave blank. The extension tracks time only.</p><label>Cost (USD)<span class="unit-input"><input name="cost" aria-label="Cost (USD)" type="number" min="0" step="any" value="${session?.cost ?? ""}" placeholder="Estimated if left blank" /><span aria-hidden="true">USD</span></span></label><p class="fine-print" id="cost-hint">Optional estimate; this isn’t your subscription bill. Leave tokens empty if you don’t know them.</p></details><p id="form-error" class="form-error" role="alert"></p><div class="modal-footer"><button type="button" class="button secondary" data-close>Cancel</button><button class="button primary" type="submit">${icon("check")} ${session ? "Save changes" : "Save session"}</button></div></form>`;
+  dialog.innerHTML = `<form id="session-form"><div class="modal-header"><span class="settings-icon violet">${icon("spark")}</span><button type="button" class="icon-btn" data-close aria-label="Close">${icon("x")}</button></div><h2>${session ? "A little fine-tuning." : "What did you create today?"}</h2><p class="modal-subtitle">${state.mode === "demo" ? "Changes here affect sample data only. Switch to your own orbit to save real sessions." : "Every session is a small step toward something."}</p><label>Session title<input name="title" required maxlength="120" placeholder="e.g. Brainstorming my next big idea" value="${esc(session?.title || "")}" autofocus /></label><div class="form-grid"><label>AI tool<select name="provider">${PROVIDERS.map((x) => `<option value="${x.id}" ${p === x.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label><label>Activity<select name="category">${["Writing", "Coding", "Research", "Learning", "Other"].map((c) => `<option ${session?.category === c ? "selected" : ""}>${c}</option>`).join("")}</select></label><label>Date & time<input name="date" type="datetime-local" required max="${dateValue()}" value="${dateValue(session?.date)}" /></label><label>Duration (minutes)<span class="unit-input"><input name="duration" aria-label="Duration (minutes)" type="number" min="0" max="1440" step="any" value="${session?.duration ?? ""}" placeholder="e.g. 20" /><span aria-hidden="true">min</span></span></label></div><details ${session && (session.inputTokens || session.outputTokens || session.cost) ? "open" : ""}><summary>Tokens, model & cost <span>Optional</span></summary><label>Model<input name="model" maxlength="80" placeholder="e.g. Claude Sonnet" value="${esc(session?.model || "")}" /></label><div class="form-grid"><label>Input tokens<span class="unit-input"><input name="inputTokens" aria-label="Input tokens" type="number" min="0" step="1" value="${session?.inputTokens ?? ""}" placeholder="e.g. 1500" aria-describedby="token-help input-token-help" /><span aria-hidden="true">tokens</span></span><small class="field-help" id="input-token-help">Text sent to the AI, including context.</small></label><label>Output tokens<span class="unit-input"><input name="outputTokens" aria-label="Output tokens" type="number" min="0" step="1" value="${session?.outputTokens ?? ""}" placeholder="e.g. 500" aria-describedby="token-help output-token-help" /><span aria-hidden="true">tokens</span></span><small class="field-help" id="output-token-help">Text generated in the AI’s reply.</small></label></div><p class="fine-print" id="token-help">Enter whole token counts, not words or thousands: enter 1500 for 1.5k tokens. Use your provider’s usage report if available, or leave blank. The extension tracks time and observed send actions, not token counts.</p><label>Cost (USD)<span class="unit-input"><input name="cost" aria-label="Cost (USD)" type="number" min="0" step="any" value="${session?.cost ?? ""}" placeholder="Estimated if left blank" /><span aria-hidden="true">USD</span></span></label><p class="fine-print" id="cost-hint">Optional estimate; this isn’t your subscription bill. Leave tokens empty if you don’t know them.</p></details><p id="form-error" class="form-error" role="alert"></p><div class="modal-footer"><button type="button" class="button secondary" data-close>Cancel</button><button class="button primary" type="submit">${icon("check")} ${session ? "Save changes" : "Save session"}</button></div></form>`;
   dialog
     .querySelectorAll("[data-close]")
     .forEach((b) => (b.onclick = () => dialog.close()));
   const form = dialog.querySelector("form");
+  if (
+    session?.source === "extension" ||
+    session?.id.startsWith("orbit-extension-")
+  ) {
+    for (const name of ["inputTokens", "outputTokens", "cost"])
+      form.elements[name].disabled = true;
+    dialog.querySelector("#cost-hint").textContent =
+      "Browser records do not measure tokens, billing, or remaining limits. These fields are unavailable.";
+  }
   form.addEventListener("input", () => {
+    if (
+      session?.source === "extension" ||
+      session?.id.startsWith("orbit-extension-")
+    )
+      return;
     const f = new FormData(form);
     dialog.querySelector("#cost-hint").textContent =
       `Illustrative token estimate: ${money(calculateCost(f.get("provider"), Math.min(1e12, Math.max(0, Number(f.get("inputTokens")) || 0)), Math.min(1e12, Math.max(0, Number(f.get("outputTokens")) || 0))))}. Enter 0 for subscription chats with no additional charge.`;
@@ -433,8 +456,9 @@ function openSession(session) {
     e.preventDefault();
     try {
       const raw = Object.fromEntries(new FormData(form));
-      if (!raw.cost) delete raw.cost;
+      if (!raw.cost) raw.cost = undefined;
       const item = validateSession({
+        ...session,
         ...raw,
         id: session?.id || crypto.randomUUID(),
         date: new Date(raw.date).toISOString(),
@@ -509,6 +533,8 @@ function download(content, ext) {
 function exportCSV() {
   const keys = [
     "title",
+    "source",
+    "messageCount",
     "provider",
     "model",
     "category",
