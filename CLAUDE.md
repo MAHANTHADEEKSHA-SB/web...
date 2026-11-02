@@ -6,8 +6,9 @@ Orbit is a private, local-first AI-usage dashboard: a static Vite SPA in vanilla
 
 ## Current handoff
 
-- Live: `main` @ `5c223cd` (PR #5: observed AI usage, extension v1.1.0). GitHub Pages deploy run #6 succeeded.
-- Awaiting review, stacked (merge in order): `feature/sprint-1` (Sprint 1 + extension 1.1.1, 13/26 checks), then `feature/visual-polish` (chart, search, a11y, first run, demo story, brand assets, CSP; 23/26 checks, 51 tests). Check `git branch -r` for newer `feature/*` branches.
+- Live: `main` @ `a5719bb` (PR #6 merged `feature/visual-polish`, which contains `feature/sprint-1`). GitHub Pages deploy run #7 succeeded (2026-11-01 18:28 UTC). The site's extension ZIP is 1.1.1.
+- Nothing awaits review. Re-verified on `main` (2026-11-02): 51/51 tests, 23/26 `check.cjs` checks. Open: A3 and B2 (owner decisions), C12 (CI). `feature/sprint-1` and `feature/visual-polish` are fully merged and can be deleted. Check `git branch -r` for newer `feature/*` branches.
+- `dev` is stale: 33 commits behind `main` with no unique content (its extra commit is the PR #4 merge). Branch from `main`, not `dev`.
 - The extension records active time and observed send actions. These are not provider-confirmed successful replies, tokens, billing, or remaining limits. Unknown metrics stay unavailable. Logged-in provider layouts and real-profile installation are not verified in this sandbox.
 - Continue the user's current task; the backlog in `WORK_STATUS.md` §12 is not an instruction to switch tasks.
 

@@ -1,11 +1,8 @@
 # Orbit — Work Status & Handoff
 
-> **Last updated:** 2026-11-01 · **Live:** `main` @ `5c223cd` (PR #5, observed AI usage). GitHub Pages deploy run #6 succeeded at 11:13 UTC (checked via the GitHub Actions API).
-> **Branches awaiting review (stacked; merge in this order):**
-> 1. `feature/sprint-1`, based on `5c223cd`: Sprint 1 fixes plus extension 1.1.1. **13/26** checks.
-> 2. `feature/visual-polish`, based on `feature/sprint-1`: chart, search, accessibility, first run, demo story, brand assets and CSP. **23/26** checks; Lighthouse a11y, best practices and performance 100. **This file describes this branch.**
-> Neither is deployed until merged into `main` (0/26 checks).
-> **Earlier branch:** `feat/observed-ai-usage` (extension v1.1.0) is merged and live.
+> **Last updated:** 2026-11-02 · **Live:** `main` @ `a5719bb` (PR #6). GitHub Pages deploy run #7 succeeded at 2026-11-01 18:28 UTC (checked via the GitHub Actions API).
+> **Merged and live:** `feature/sprint-1` (Sprint 1, extension 1.1.1) and `feature/visual-polish` (chart, search, accessibility, first run, demo story, brand assets, CSP), via PR #6. Earlier: `feat/observed-ai-usage` (PR #5).
+> **Re-verified on `main` (2026-11-02):** 51/51 tests, production build, **23/26** acceptance checks. Nothing awaits review.
 > **Read next:** [`AUDIT.md`](AUDIT.md) (findings with exact fixes) · [`docs/audit/check.cjs`](docs/audit/check.cjs) (26 acceptance checks)
 
 ---
@@ -16,16 +13,16 @@
 or import active time and observed send actions from the optional Chrome/Edge extension, then explore totals, a usage chart, your "AI mix", and insights. The feature dashboard prioritizes recorded time, observed sends, activity records, and active days; browser records do not invent token or billing values.
 There is no backend, account or API key. Data lives in the browser's `localStorage`, with JSON/CSV export as the backup path. It is a static Vite site deployed to GitHub Pages.
 
-**Baseline:** v1.0.0 was live and healthy at `41fc42a` (21/21 unit tests, Lighthouse Performance 100, 0 console errors). The observed-usage feature (`5c223cd`) is live with 38 passing tests; its provider-control fixtures pass, but logged-in provider layouts and real-profile installation remain unverified.
+**Baseline:** v1.0.0 was live and healthy at `41fc42a` (21/21 unit tests, Lighthouse Performance 100, 0 console errors). The observed-usage feature went live at `5c223cd` with 38 passing tests (51 on `main` now); its provider-control fixtures pass, but logged-in provider layouts and real-profile installation remain unverified.
 A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs, 14 code-health items and 9 extension items**, plus a 14-item feature roadmap. A follow-up review of the observed-usage feature added **N1–N11** ([AUDIT.md §10](AUDIT.md#10-follow-up-review-observed-ai-usage-main--5c223cd)).
 **Sprint 1 is done on `feature/sprint-1`** (one commit per finding): A1, A2, A4, B5–B9, B11–B14, C4, C9, E3, E4 and N6.
-**A visual-polish pass is done on `feature/visual-polish`**: B1, B3, B4, B10, B15, C1, C7, C8, E1, E2, E5 and the observed-usage follow-ups N1–N5, N9–N11. 51/51 tests pass and 23/26 checks. Next: review/merge both branches in order, then the remaining items in [§12](#12-next-steps).
+**A visual-polish pass is done on `feature/visual-polish`**: B1, B3, B4, B10, B15, C1, C7, C8, E1, E2, E5 and the observed-usage follow-ups N1–N5, N9–N11. 51/51 tests pass and 23/26 checks. Both are merged into `main` (PR #6) and live since deploy run #7. Next: the remaining items in [§12](#12-next-steps).
 
 ---
 
 ## 2. Status at a glance
 
-"Live" means `main` @ `5c223cd`. ✅ **fixed** means fixed on `feature/sprint-1` or `feature/visual-polish` (not live until merged).
+"Live" means `main` @ `a5719bb` (deploy run #7). Every ✅ **fixed** item below is live.
 
 | Area | Status | Notes / audit IDs |
 |---|---|---|
@@ -35,17 +32,17 @@ A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs
 | Search / provider filter | ✅ B1 fixed · ⚠️ B2 open | IME-safe, debounced, region updates, 50-row pages. **B2** (search filters the whole page) awaits an owner decision |
 | Usage chart / AI mix / Insights | ✅ fixed (B3, B12, C9, N3, N4, N10) | Real-size chart with read-out; time-share mix by tool; Insights by tool for tracked data. Open: **C10** all-time weekly buckets |
 | JSON import/export, CSV export | ✅ Live | **C1**–**C3**, **C11** polish |
-| Browser extension (MV3, Chrome/Edge 120+) | v1.1.0 live · **v1.1.1** on branches | 1.1.1: alarm no longer postponed (E3), readable popup (E4), updates from ≥ 1.1.0 keep tracking on (N6), icons (E1, E2), real logo (E5). Logged-in provider layouts and real-profile installation remain unverified. Open: E6–E9 |
+| Browser extension (MV3, Chrome/Edge 120+) | **v1.1.1** live in the site's ZIP | Installed copies don't auto-update: replace the files and click **Reload** (tracking stays on). | 1.1.1: alarm no longer postponed (E3), readable popup (E4), updates from ≥ 1.1.0 keep tracking on (N6), icons (E1, E2), real logo (E5). Logged-in provider layouts and real-profile installation remain unverified. Open: E6–E9 |
 | Logged + tracked time together | ❌ Double counted | **A3** |
 | Durability (Safari 7-day eviction, shared origin, backups) | ❌ Unaddressed | **A5** |
 | Accessibility | ✅ fixed (B4, B8–B11, C7) | axe contrast failures 347 → 0; text < 12px 82% → 0%; Lighthouse accessibility **100** on mobile and desktop |
 | Mobile / tablet layout | ✅ fixed (B4–B7, N9) | Card rows, single-column form, scrolling sidebar, accessible drawer, unclipped legend |
-| Automated tests (`node --test`) | ✅ 51/51 on `feature/visual-polish` (46 on sprint-1, 38 on main) | Data, formatters, chart geometry, time/send accounting, control observations, mocked service-worker integration |
-| Observed AI activity | ✅ Live (`5c223cd`) | Active time + observed submissions; old counts and unmeasured tokens/cost remain unavailable. Not provider-confirmed usage or remaining limits. Presentation follow-ups fixed except **N8** (owner decision) |
+| Automated tests (`node --test`) | ✅ 51/51 on `main` (was 38 before Sprint 1) | Data, formatters, chart geometry, time/send accounting, control observations, mocked service-worker integration |
+| Observed AI activity | ✅ Live since `5c223cd` | Active time + observed submissions; old counts and unmeasured tokens/cost remain unavailable. Not provider-confirmed usage or remaining limits. Presentation follow-ups fixed except **N8** (owner decision) |
 | UI / E2E checks | Targeted browser checks passed; no committed E2E suite | Five provider-control fixtures plus dashboard import/edit/persistence/mobile/ZIP checks were run. Automated control/worker tests are committed; browser fixtures are not part of CI. **C12** remains open. |
 | CI on pull requests | ❌ None (deploy workflow only) | **C12** |
-| Deploy (GitHub Actions → Pages) | ✅ Runs #3–#6 succeeded | On push to `main`; run #6 = `5c223cd` |
-| Audit + acceptance checks | ✅ **23/26** on `feature/visual-polish` | 13/26 on sprint-1; 0/26 on `5c223cd`. Open: A3, B2 (owner decisions), C12 (CI) |
+| Deploy (GitHub Actions → Pages) | ✅ Runs #3–#7 succeeded | On push to `main`; run #7 = `a5719bb` (PR #6) |
+| Audit + acceptance checks | ✅ **23/26** on `main` (re-verified 2026-11-02) | Was 0/26 on `5c223cd` and 13/26 after Sprint 1. Open: A3, B2 (owner decisions), C12 (CI) |
 | First run, brand & sharing | ✅ fixed (B15, C8) | Welcome panel; social preview card, manifest/icons, apple-touch-icon, `<noscript>`, build-time CSP |
 
 ---
@@ -67,6 +64,8 @@ A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs
 | 2026-11-01 11:12 | PR #5 merged (`5c223cd`) → deploy run #6 ✅ | Observed AI usage + extension 1.1.0 live |
 | 2026-11-01 | branch `feature/sprint-1` | Sprint 1 (one commit per finding) + follow-up review N1–N11; checks 0/26 → 13/26; tests 38 → 46 |
 | 2026-11-01 | branch `feature/visual-polish` | Chart, search, a11y, first run, demo story, brand assets, CSP; checks 13/26 → 23/26; tests 46 → 51 |
+| 2026-11-01 18:28 | PR #6 merged (`a5719bb`) → deploy run #7 ✅ | Sprint 1 + visual polish live; extension 1.1.1 in the ZIP. `main`'s tree is identical to the reviewed `feature/visual-polish` tip |
+| 2026-11-02 | branch `feature/refresh-handoff-notes` | Handoff notes refreshed after PR #6; 51/51 tests and 23/26 checks re-verified on `main` |
 
 ---
 
@@ -115,7 +114,7 @@ A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs
 | `tests/content.test.js` | 3 control-observer tests with DOM/runtime stubs |
 | `.github/workflows/deploy.yml` | Node 22 install/test/build → Pages on pushes to `main` |
 | `AUDIT.md` | Historical findings, proposed fixes, roadmap and sprint plan |
-| `docs/audit/check.cjs` | 26 audit acceptance checks (23 pass on `feature/visual-polish`) |
+| `docs/audit/check.cjs` | 26 audit acceptance checks (23 pass on `main`) |
 | `docs/audit/contrast-map.json`, `docs/audit/*.jpg` | Audit measurements, evidence and proposed-fix previews |
 
 ---
@@ -179,11 +178,11 @@ After changing the logo, regenerate the raster brand assets with `node scripts/g
 ## 8. Deployment
 
 - **How:** `.github/workflows/deploy.yml` on every push to `main` (or Actions → "Deploy Orbit to GitHub Pages" → Run workflow). Repo Settings → Pages → Source = **GitHub Actions**. No secrets.
-- **Last deploy:** run #6, commit `5c223cd` (PR #5), success at 2026-11-01 11:13 UTC, verified via the GitHub Actions API.
-- **Pending:** `feature/sprint-1` (based on `5c223cd`) is pushed for review. Merging it into `main` deploys it; then download the 1.1.1 extension ZIP from Settings, replace the files and click **Reload**. Tracking stays on (N6).
+- **Last deploy:** run #7, commit `a5719bb` (PR #6), success at 2026-11-01 18:28 UTC, verified via the GitHub Actions API.
+- **Branches:** `feature/sprint-1` and `feature/visual-polish` are fully merged into `main` and can be deleted. `dev` is 33 commits behind `main` with no unique content (only the PR #4 merge commit), so fast-forward it to `main` or retire it before anyone branches from it.
 - **URL:** the project path is expected to be `https://mahanthadeeksha-sb.github.io/web.../`. Confirm it in Settings → Pages; the audit sandbox's network policy blocked fetching it.
 - **Alternative:** Cloudflare Pages (preset None, build `npm run build`, output `dist`, Node ≥ 22.12). This also gives Orbit its own origin (A5).
-- **Branch flow used so far:** feature → `dev` → `main` via PRs. Pages deploys only from `main`.
+- **Branch flow:** PRs #3, #5 and #6 went straight from `feature/*` branches to `main`; `dev` was only used for PRs #1, #2 and #4. Pages deploys only from `main`.
 
 ---
 
@@ -238,7 +237,7 @@ The full list with evidence and exact fixes is in [`AUDIT.md`](AUDIT.md). Fixed 
 
 ## 12. Next steps
 
-**Now:** review and merge `feature/sprint-1`, then `feature/visual-polish` (stacked on it), into `main`. Both are based on the live `5c223cd`; no conflicts expected. After Pages deploys, update the extension to 1.1.1 from Settings: replace the files and click **Reload**, and tracking stays on.
+**Now:** both fix branches are merged and live (PR #6, deploy run #7). Update any installed extension to 1.1.1: Settings → **Download extension**, replace the files in the same folder, click **Reload** (tracking stays on). Optionally delete the merged branches and sync or retire `dev` (§8).
 
 **Visual polish: done on `feature/visual-polish`.**
 
@@ -296,7 +295,7 @@ You are continuing work on "Orbit", a private, local-first AI-usage dashboard (s
 with an optional MV3 Chrome/Edge extension for active time and observed send actions (no message text). Repo: MAHANTHADEEKSHA-SB/web...
 
 1. Read WORK_STATUS.md (status, architecture, invariants, gotchas), then AUDIT.md (findings with exact fixes).
-2. Continue the current user task first. main @ 5c223cd is live (run #6). feature/sprint-1 and feature/visual-polish (stacked on it) await review/merge; check `git branch -r` for newer feature/* branches. The backlog in §12 is not an automatic replacement for the user task.
+2. Continue the current user task first. main @ a5719bb is live (deploy run #7); feature/sprint-1 and feature/visual-polish are merged. Branch from main, not dev (dev is 33 commits stale). Check `git branch -r` for newer feature/* branches. The backlog in §12 is not an automatic replacement for the user task.
 3. For application changes run npm test && npm run build (51 tests currently). When fixing an audit ID, start `npx vite preview --host 127.0.0.1 --port 4173 --strictPort &`,
    then `node docs/audit/check.cjs --only=<ID>`. A claimed audit fix must pass its acceptance check; do not weaken assertions.
 4. Never break the invariants in WORK_STATUS.md §9 (no network/analytics, esc() all user text, validateSession, tests for logic).
