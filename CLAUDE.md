@@ -8,6 +8,7 @@ Orbit is a private, local-first AI-usage dashboard: a static Vite SPA in vanilla
 
 - Verified 2026-11-03: local and upstream `main` are `a5719bb` (PR #6). Sprint 1 and visual polish are merged, including extension 1.1.1. Do not repeat those merges. Current Pages deployment has not been verified.
 - Onboarding passed 51 tests and the production build; development/production HTTP and the extension ZIP were checked. Historical 23/26 acceptance and Lighthouse 100 results have not been rerun. Browser rendering timed out; real-profile extension behavior remains unverified. See WORK_STATUS.md §15 for corrections and evidence limits.
+- Concurrent review `f7cc7b2` reports successful deploy run #7 and fresh 23/26 acceptance checks on main; see WORK_STATUS.md’s concurrent-review evidence for attribution. Branch new work from main rather than stale dev.
 - The extension records active time and observed send actions. These are not provider-confirmed successful replies, tokens, billing, or remaining limits. Unknown metrics stay unavailable. Logged-in provider layouts and real-profile installation are not verified in this sandbox.
 - Continue the user's current task; the backlog in `WORK_STATUS.md` §12 is not an instruction to switch tasks.
 

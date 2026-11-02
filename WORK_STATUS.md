@@ -40,8 +40,8 @@ A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs
 | Observed AI activity | ✅ Live (`5c223cd`) | Active time + observed submissions; old counts and unmeasured tokens/cost remain unavailable. Not provider-confirmed usage or remaining limits. Presentation follow-ups fixed except **N8** (owner decision) |
 | UI / E2E checks | Targeted browser checks passed; no committed E2E suite | Five provider-control fixtures plus dashboard import/edit/persistence/mobile/ZIP checks were run. Automated control/worker tests are committed; browser fixtures are not part of CI. **C12** remains open. |
 | CI on pull requests | ❌ None (deploy workflow only) | **C12** |
-| Deploy (GitHub Actions → Pages) | ✅ Runs #3–#6 succeeded | On push to `main`; run #6 = `5c223cd` |
-| Audit + acceptance checks | ✅ **23/26** on `feature/visual-polish` | 13/26 on sprint-1; 0/26 on `5c223cd`. Open: A3, B2 (owner decisions), C12 (CI) |
+| Deploy (GitHub Actions → Pages) | ✅ Runs #3–#7 succeeded | On push to `main`; run #7 = `a5719bb` (PR #6) |
+| Audit + acceptance checks | ✅ **23/26** on `main` (re-verified 2026-11-02) | Was 0/26 on `5c223cd` and 13/26 after Sprint 1. Open: A3, B2 (owner decisions), C12 (CI) |
 | First run, brand & sharing | ✅ fixed (B15, C8) | Welcome panel; social preview card, manifest/icons, apple-touch-icon, `<noscript>`, build-time CSP |
 
 ---
@@ -63,6 +63,8 @@ A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs
 | 2026-11-01 11:12 | PR #5 merged (`5c223cd`) → deploy run #6 ✅ | Observed AI usage + extension 1.1.0 live |
 | 2026-11-01 | branch `feature/sprint-1` | Sprint 1 (one commit per finding) + follow-up review N1–N11; checks 0/26 → 13/26; tests 38 → 46 |
 | 2026-11-01 | branch `feature/visual-polish` | Chart, search, a11y, first run, demo story, brand assets, CSP; checks 13/26 → 23/26; tests 46 → 51 |
+| 2026-11-01 18:28 | PR #6 merged (`a5719bb`) → deploy run #7 ✅ | Sprint 1 + visual polish live; extension 1.1.1 in the ZIP. `main`'s tree is identical to the reviewed `feature/visual-polish` tip |
+| 2026-11-02 | branch `feature/refresh-handoff-notes` | Handoff notes refreshed after PR #6; 51/51 tests and 23/26 checks re-verified on `main` |
 
 ---
 
@@ -111,7 +113,7 @@ A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs
 | `tests/content.test.js` | 3 control-observer tests with DOM/runtime stubs |
 | `.github/workflows/deploy.yml` | Node 22 install/test/build → Pages on pushes to `main` |
 | `AUDIT.md` | Historical findings, proposed fixes, roadmap and sprint plan |
-| `docs/audit/check.cjs` | 26 audit acceptance checks (23 pass on `feature/visual-polish`) |
+| `docs/audit/check.cjs` | 26 audit acceptance checks (23 pass on `main`) |
 | `docs/audit/contrast-map.json`, `docs/audit/*.jpg` | Audit measurements, evidence and proposed-fix previews |
 
 ---
@@ -175,11 +177,11 @@ After changing the logo, regenerate the raster brand assets with `node scripts/g
 ## 8. Deployment
 
 - **How:** `.github/workflows/deploy.yml` on every push to `main` (or Actions → "Deploy Orbit to GitHub Pages" → Run workflow). Repo Settings → Pages → Source = **GitHub Actions**. No secrets.
-- **Last deploy:** run #6, commit `5c223cd` (PR #5), success at 2026-11-01 11:13 UTC, verified via the GitHub Actions API.
-- **Pending:** `feature/sprint-1` (based on `5c223cd`) is pushed for review. Merging it into `main` deploys it; then download the 1.1.1 extension ZIP from Settings, replace the files and click **Reload**. Tracking stays on (N6).
+- **Last deploy:** run #7, commit `a5719bb` (PR #6), success at 2026-11-01 18:28 UTC, verified via the GitHub Actions API.
+- **Branches:** `feature/sprint-1` and `feature/visual-polish` are fully merged into `main` and can be deleted. `dev` is 33 commits behind `main` with no unique content (only the PR #4 merge commit), so fast-forward it to `main` or retire it before anyone branches from it.
 - **URL:** the project path is expected to be `https://mahanthadeeksha-sb.github.io/web.../`. Confirm it in Settings → Pages; the audit sandbox's network policy blocked fetching it.
 - **Alternative:** Cloudflare Pages (preset None, build `npm run build`, output `dist`, Node ≥ 22.12). This also gives Orbit its own origin (A5).
-- **Branch flow used so far:** feature → `dev` → `main` via PRs. Pages deploys only from `main`.
+- **Branch flow:** PRs #3, #5 and #6 went straight from `feature/*` branches to `main`; `dev` was only used for PRs #1, #2 and #4. Pages deploys only from `main`.
 
 ---
 
@@ -309,3 +311,7 @@ with an optional MV3 Chrome/Edge extension for active time and observed send act
 - **Stale rendering explanation:** `updateResults()` updates named result regions; the old blanket explanation omitted the implemented focus-preservation fix.
 - **Validation scope:** 23/26 acceptance checks and Lighthouse 100 are earlier assistant reports. This review does not independently confirm those results. Onboarding verified 51 tests and the build, but Chromium rendering timed out. Real provider layouts and installed-extension behavior remain manual checks.
 - **Correction to my onboarding report:** the first sandboxed test output counted six test files, not six individual cases. The later unrestricted run reported 51 passing tests. An earlier failed npm install also overlapped a successful retry; the final sequential reinstall, 51-test run and build succeeded. Future refreshes must run one install at a time. My earlier readiness statement covers development commands and HTTP checks, not verified browser rendering or fresh-task restoration.
+
+### Concurrent review evidence preserved
+
+The other assistant’s commit `f7cc7b2` (2026-11-02) reports GitHub Actions deploy run #7 for `a5719bb` succeeded at 2026-11-01 18:28 UTC, and reports a fresh 51/51 test run and 23/26 acceptance checks on main. Those are that review’s reported results; this environment has not independently repeated its deployment/API or browser checks. References above to deployment being unverified mean unverified by this environment, not evidence of deployment failure. The other review also reports `dev` is 33 commits behind main with only an extra merge commit; branch new work from main and recheck refs before any branch maintenance. No branch deletion or reset is authorized by these notes.

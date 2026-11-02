@@ -5,7 +5,7 @@
 > [`docs/audit/contrast-map.json`](docs/audit/contrast-map.json) (verified colour fixes) · [`docs/audit/*.jpg`](docs/audit) (evidence)
 > **Handoff/status:** [`WORK_STATUS.md`](WORK_STATUS.md)
 
-> **Fix status (2026-11-01):** two stacked branches on top of `main` @ `5c223cd` (0/26 checks).
+> **Fix status (updated 2026-11-02):** both fix branches are merged into `main` via PR #6 (`a5719bb`) and live (deploy run #7). Re-verified on `main`: **23/26** checks, 51/51 tests. Where each fix was made:
 > - `feature/sprint-1`: A1, A2, A4, B5–B9, B11–B14, C4, C9, E3, E4, N6, N7. **13/26** checks.
 > - `feature/visual-polish` (includes sprint-1): plus B1, B3, B4, B10, B15, C1, C7, C8, E1, E2, E5, N1–N5, N9–N11. **23/26** checks; Lighthouse accessibility, best practices and performance 100 (mobile and desktop).
 > - Still open: A3 and B2 (owner decisions), C12 (CI), and the rest of the backlog below. The follow-up review of the observed-usage feature is in [§10](#10-follow-up-review-observed-ai-usage-main--5c223cd).
