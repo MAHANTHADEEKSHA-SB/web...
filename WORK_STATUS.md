@@ -1,12 +1,8 @@
 # Orbit — Work Status & Handoff
 
-> **Last updated:** 2026-11-01 · **Live:** `main` @ `5c223cd` (PR #5, observed AI usage). GitHub Pages deploy run #6 succeeded at 11:13 UTC (checked via the GitHub Actions API).
-> **Branches awaiting review (stacked; merge in this order):**
-> 1. `feature/sprint-1`, based on `5c223cd`: Sprint 1 fixes plus extension 1.1.1. **13/26** checks.
-> 2. `feature/visual-polish`, based on `feature/sprint-1`: chart, search, accessibility, first run, demo story, brand assets and CSP. **23/26** checks; Lighthouse a11y, best practices and performance 100. **This file describes this branch.**
-> Neither is deployed until merged into `main` (0/26 checks).
-> **Earlier branch:** `feat/observed-ai-usage` (extension v1.1.0) is merged and live.
-> **Read next:** [`AUDIT.md`](AUDIT.md) (findings with exact fixes) · [`docs/audit/check.cjs`](docs/audit/check.cjs) (26 acceptance checks)
+> **Last reviewed:** 2026-11-03 (Asia/Kolkata). Local checkout and upstream `main` are `a5719bb` (PR #6, merging `feature/visual-polish`, including Sprint 1). The merge is verified; the latest GitHub Pages deployment has **not** been checked in this review.
+> **Validation:** onboarding verified 51 tests, a production build, local development/production HTTP responses and the 13-file extension ZIP. Browser rendering timed out; real-profile extension tracking remains unverified. The earlier **23/26 acceptance checks** and Lighthouse scores below are historical branch results, not a fresh run.
+> **Read next:** [`AUDIT.md`](AUDIT.md) (historical findings) · [`docs/audit/check.cjs`](docs/audit/check.cjs) (26 acceptance checks).
 
 ---
 
@@ -16,16 +12,16 @@
 or import active time and observed send actions from the optional Chrome/Edge extension, then explore totals, a usage chart, your "AI mix", and insights. The feature dashboard prioritizes recorded time, observed sends, activity records, and active days; browser records do not invent token or billing values.
 There is no backend, account or API key. Data lives in the browser's `localStorage`, with JSON/CSV export as the backup path. It is a static Vite site deployed to GitHub Pages.
 
-**Baseline:** v1.0.0 was live and healthy at `41fc42a` (21/21 unit tests, Lighthouse Performance 100, 0 console errors). The observed-usage feature (`5c223cd`) is live with 38 passing tests; its provider-control fixtures pass, but logged-in provider layouts and real-profile installation remain unverified.
+**Baseline:** v1.0.0 was live and healthy at `41fc42a` (21/21 unit tests, Lighthouse Performance 100, 0 console errors). The observed-usage feature (`5c223cd`) was previously reported live with 38 passing tests; its provider-control fixtures pass, but logged-in provider layouts and real-profile installation remain unverified.
 A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs, 14 code-health items and 9 extension items**, plus a 14-item feature roadmap. A follow-up review of the observed-usage feature added **N1–N11** ([AUDIT.md §10](AUDIT.md#10-follow-up-review-observed-ai-usage-main--5c223cd)).
-**Sprint 1 is done on `feature/sprint-1`** (one commit per finding): A1, A2, A4, B5–B9, B11–B14, C4, C9, E3, E4 and N6.
-**A visual-polish pass is done on `feature/visual-polish`**: B1, B3, B4, B10, B15, C1, C7, C8, E1, E2, E5 and the observed-usage follow-ups N1–N5, N9–N11. 51/51 tests pass and 23/26 checks. Next: review/merge both branches in order, then the remaining items in [§12](#12-next-steps).
+**Sprint 1 is merged into `main` via PR #6** (one commit per finding): A1, A2, A4, B5–B9, B11–B14, C4, C9, E3, E4 and N6.
+**A visual-polish pass is merged into `main` via PR #6**: B1, B3, B4, B10, B15, C1, C7, C8, E1, E2, E5 and the observed-usage follow-ups N1–N5, N9–N11. 51/51 tests pass and 23/26 checks. Next: verify the deployment for `a5719bb`, then consider the remaining items in [§12](#12-next-steps).
 
 ---
 
 ## 2. Status at a glance
 
-"Live" means `main` @ `5c223cd`. ✅ **fixed** means fixed on `feature/sprint-1` or `feature/visual-polish` (not live until merged).
+✅ **fixed** means present in `main` @ `a5719bb`. Rows labelled "Live" describe earlier deployment evidence; current production deployment is unverified. Historical acceptance and Lighthouse results have not been rerun.
 
 | Area | Status | Notes / audit IDs |
 |---|---|---|
@@ -35,12 +31,12 @@ A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs
 | Search / provider filter | ✅ B1 fixed · ⚠️ B2 open | IME-safe, debounced, region updates, 50-row pages. **B2** (search filters the whole page) awaits an owner decision |
 | Usage chart / AI mix / Insights | ✅ fixed (B3, B12, C9, N3, N4, N10) | Real-size chart with read-out; time-share mix by tool; Insights by tool for tracked data. Open: **C10** all-time weekly buckets |
 | JSON import/export, CSV export | ✅ Live | **C1**–**C3**, **C11** polish |
-| Browser extension (MV3, Chrome/Edge 120+) | v1.1.0 live · **v1.1.1** on branches | 1.1.1: alarm no longer postponed (E3), readable popup (E4), updates from ≥ 1.1.0 keep tracking on (N6), icons (E1, E2), real logo (E5). Logged-in provider layouts and real-profile installation remain unverified. Open: E6–E9 |
+| Browser extension (MV3, Chrome/Edge 120+) | **v1.1.1** in main; current deployment unverified | 1.1.1: alarm no longer postponed (E3), readable popup (E4), updates from ≥ 1.1.0 keep tracking on (N6), icons (E1, E2), real logo (E5). Logged-in provider layouts and real-profile installation remain unverified. Open: E6–E9 |
 | Logged + tracked time together | ❌ Double counted | **A3** |
 | Durability (Safari 7-day eviction, shared origin, backups) | ❌ Unaddressed | **A5** |
 | Accessibility | ✅ fixed (B4, B8–B11, C7) | axe contrast failures 347 → 0; text < 12px 82% → 0%; Lighthouse accessibility **100** on mobile and desktop |
 | Mobile / tablet layout | ✅ fixed (B4–B7, N9) | Card rows, single-column form, scrolling sidebar, accessible drawer, unclipped legend |
-| Automated tests (`node --test`) | ✅ 51/51 on `feature/visual-polish` (46 on sprint-1, 38 on main) | Data, formatters, chart geometry, time/send accounting, control observations, mocked service-worker integration |
+| Automated tests (`node --test`) | ✅ 51/51 at onboarding on `a5719bb` (historically 46 on sprint-1, 38 on `5c223cd`) | Data, formatters, chart geometry, time/send accounting, control observations, mocked service-worker integration |
 | Observed AI activity | ✅ Live (`5c223cd`) | Active time + observed submissions; old counts and unmeasured tokens/cost remain unavailable. Not provider-confirmed usage or remaining limits. Presentation follow-ups fixed except **N8** (owner decision) |
 | UI / E2E checks | Targeted browser checks passed; no committed E2E suite | Five provider-control fixtures plus dashboard import/edit/persistence/mobile/ZIP checks were run. Automated control/worker tests are committed; browser fixtures are not part of CI. **C12** remains open. |
 | CI on pull requests | ❌ None (deploy workflow only) | **C12** |
@@ -74,11 +70,11 @@ A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs
 
 - **Static SPA**, Vite 7, **vanilla JS** with no framework. Views are HTML **template strings** written with `innerHTML`. Every user string passes `esc()`.
 - **State:** one `state` object in `src/main.js` (`view`, `days`, `provider`, `query`, `chart`, `mode`, `personal`, `demo`). `render()` = `shell()` + `renderContent()`.
-  `renderContent()` rebuilds the whole content area on most interactions, which is the root cause of B1 and B10.
+  `renderContent()` rebuilds content on navigation; filtering uses `updateResults()` to preserve the search input and provider select (B1/B10 fixes).
 - **Routing:** `location.hash` → `navigate()` (`src/main.js:372`). Unknown hashes fall back to Overview.
 - **Data layer:** `src/data.js` holds pure functions for validation, filtering, aggregation, import/export, and storage I/O with injectable storage. The automated suite also covers extension accounting, control observations, and mocked worker integration.
 - **Persistence:** `localStorage` only. The demo dataset is generated deterministically from "now" on every load (`createDemoSessions`).
-- **Extension:** MV3 service worker plus a narrowly scoped `content.js` observer. `core.js` owns active-time accounting and observed-send accumulation. `background.js` samples the active tab on alarms/tab/window/idle events and accepts observations only from supported, active, top-frame, non-incognito tabs in the focused normal window. Page observers inspect send-control attributes and trusted events, never prompt/reply values; Stop controls and duplicate events are excluded. Observer readiness distinguishes unavailable counts from observed zero. The popup polls every 5s; updates pause tracking until the user opts in again.
+- **Extension:** MV3 service worker plus a narrowly scoped `content.js` observer. `core.js` owns active-time accounting and observed-send accumulation. `background.js` samples the active tab on alarms/tab/window/idle events and accepts observations only from supported, active, top-frame, non-incognito tabs in the focused normal window. Page observers inspect send-control attributes and trusted events, never prompt/reply values; Stop controls and duplicate events are excluded. Observer readiness distinguishes unavailable counts from observed zero. The popup polls every 5s; only updates from versions before 1.1.0 pause tracking for renewed opt-in; later updates preserve the choice.
 - **Extension transfer:** local JSON export/import, with stable installation/day/site IDs so re-imports replace rather than duplicate. Bounded recent event IDs prevent duplicate send counting. Only provider/day totals and observation metadata are retained, not conversation URLs or text. Observed submissions are not provider-confirmed successful replies, exact tokens, billing, or remaining quotas.
 - **Build glue:** `predev`/`prebuild` run `scripts/package-extension.mjs`, which zips `extension/` into `public/orbit-extension.zip` (gitignored).
   The site serves it from Settings → "Download extension".
@@ -213,10 +209,10 @@ After changing the logo, regenerate the raster brand assets with `node scripts/g
 - **`og:image` is an absolute URL containing the repo path** (`…github.io/web.../og-image.png`). Update `index.html` if the repo is renamed (C14).
 - **Dead CSS:** `.stat-value` responsive sizes never apply, because the late rule at `src/style.css:1866` wins (C6). Check computed styles before trusting a media query.
 - **CSP:** Vite inlines assets under 4 KB as `data:` URIs (one font subset), so a CSP needs `font-src 'self' data:` (C8).
-- **Extension ZIP:** generated into `public/` by `predev`/`prebuild` (gitignored), and the packager only takes **top-level** files (E2).
+- **Extension ZIP:** generated into `public/` by `predev`/`prebuild` (gitignored), and the packager recursively includes supported file types, including `icons/` (E2 fixed).
 - **Tests:** `node --test` auto-runs `**/*.test.js`, so name Playwright specs `*.spec.js`. `package.json` is `"type": "module"`, so CommonJS scripts must be `.cjs`.
 - **Shared origin:** all GitHub Pages project sites of one account share `localStorage` (A5).
-- **Claude Code cloud sandbox:** `github.io` is blocked by the network policy, and the npm registry works. Playwright + Chromium are preinstalled:
+- **Historical Claude Code environment (not a guarantee for other cloud tasks):** `github.io` is blocked by the network policy, and the npm registry works. Playwright + Chromium are preinstalled:
   `require("playwright")` works from `.cjs`, but ESM `import` doesn't resolve the global install. Chromium is at `/opt/pw-browsers/chromium`.
 
 ---
@@ -238,7 +234,7 @@ The full list with evidence and exact fixes is in [`AUDIT.md`](AUDIT.md). Fixed 
 
 ## 12. Next steps
 
-**Now:** review and merge `feature/sprint-1`, then `feature/visual-polish` (stacked on it), into `main`. Both are based on the live `5c223cd`; no conflicts expected. After Pages deploys, update the extension to 1.1.1 from Settings: replace the files and click **Reload**, and tracking stays on.
+**Now:** both branches are merged into `main` at `a5719bb`; do not repeat the merges. Verify the corresponding Pages deployment separately. To update the extension, replace files in its existing folder and click **Reload**. Updates from before 1.1.0 pause tracking; updates from 1.1.0 or later preserve the choice.
 
 **Visual polish: done on `feature/visual-polish`.**
 
@@ -296,10 +292,20 @@ You are continuing work on "Orbit", a private, local-first AI-usage dashboard (s
 with an optional MV3 Chrome/Edge extension for active time and observed send actions (no message text). Repo: MAHANTHADEEKSHA-SB/web...
 
 1. Read WORK_STATUS.md (status, architecture, invariants, gotchas), then AUDIT.md (findings with exact fixes).
-2. Continue the current user task first. main @ 5c223cd is live (run #6). feature/sprint-1 and feature/visual-polish (stacked on it) await review/merge; check `git branch -r` for newer feature/* branches. The backlog in §12 is not an automatic replacement for the user task.
+2. Continue the current user task first. main @ a5719bb includes Sprint 1 and visual polish (PR #6). Current Pages deployment is unverified; check `git branch -r` for newer feature/* branches. The backlog in §12 is not an automatic replacement for the user task.
 3. For application changes run npm test && npm run build (51 tests currently). When fixing an audit ID, start `npx vite preview --host 127.0.0.1 --port 4173 --strictPort &`,
    then `node docs/audit/check.cjs --only=<ID>`. A claimed audit fix must pass its acceptance check; do not weaken assertions.
 4. Never break the invariants in WORK_STATUS.md §9 (no network/analytics, esc() all user text, validateSession, tests for logic).
 5. Don't weaken the assertions in docs/audit/check.cjs. If you choose a different design than AUDIT.md recommends, update the check and say why.
 6. When done, update WORK_STATUS.md §2, §11 and §12 and report the check.cjs pass count.
 ```
+
+
+## 15. Review corrections — 2026-11-03
+
+- **Stale merge status:** Git confirms `a5719bb` merges `30a2db5` into `5c223cd`, and upstream main matches. The old instruction to merge these branches again was obsolete. A merged commit does not prove a successful Pages deployment.
+- **Incorrect packager description:** `scripts/package-extension.mjs` uses recursive enumeration, so the top-level-only warning contradicted the implemented E2 fix.
+- **Overbroad update warning:** `extension/background.js` checks `isOlderVersion(previousVersion, "1.1.0")`; only those older updates require renewed consent.
+- **Stale rendering explanation:** `updateResults()` updates named result regions; the old blanket explanation omitted the implemented focus-preservation fix.
+- **Validation scope:** 23/26 acceptance checks and Lighthouse 100 are earlier assistant reports. This review does not independently confirm those results. Onboarding verified 51 tests and the build, but Chromium rendering timed out. Real provider layouts and installed-extension behavior remain manual checks.
+- **Correction to my onboarding report:** the first sandboxed test output counted six test files, not six individual cases. The later unrestricted run reported 51 passing tests. An earlier failed npm install also overlapped a successful retry; the final sequential reinstall, 51-test run and build succeeded. Future refreshes must run one install at a time. My earlier readiness statement covers development commands and HTTP checks, not verified browser rendering or fresh-task restoration.
