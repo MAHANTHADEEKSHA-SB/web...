@@ -1,8 +1,8 @@
 # Orbit — Work Status & Handoff
 
-> **Last reviewed:** 2026-11-03 (Asia/Kolkata). Local checkout and upstream `main` are `a5719bb` (PR #6, merging `feature/visual-polish`, including Sprint 1). The merge is verified; the latest GitHub Pages deployment has **not** been checked in this review.
-> **Validation:** onboarding verified 51 tests, a production build, local development/production HTTP responses and the 13-file extension ZIP. Browser rendering timed out; real-profile extension tracking remains unverified. The earlier **23/26 acceptance checks** and Lighthouse scores below are historical branch results, not a fresh run.
-> **Read next:** [`AUDIT.md`](AUDIT.md) (historical findings) · [`docs/audit/check.cjs`](docs/audit/check.cjs) (26 acceptance checks).
+> **Last reviewed:** 2026-11-02 18:49 UTC. `main` is `a5719bb` (PR #6, merging `feature/visual-polish`, which includes Sprint 1). Deploy run #7 published it; its build and deploy jobs succeeded at 2026-11-01 18:28 UTC. The live URL has not been fetched (the cloud sandbox blocks github.io).
+> **Validation (re-run 2026-11-02 18:47–18:49 UTC on `main`'s code):** 51/51 tests, production build with a 13-file extension ZIP, **23/26** acceptance checks, Lighthouse desktop 100/100/100 and mobile 98/100/100 (performance/accessibility/best practices). Evidence, limits and how to re-run are in [§15](#15-review-log-2026-11-02-utc).
+> **Read next:** [`AUDIT.md`](AUDIT.md) (findings, fix log and open backlog) · [`docs/audit/check.cjs`](docs/audit/check.cjs) (26 acceptance checks).
 
 ---
 
@@ -12,16 +12,16 @@
 or import active time and observed send actions from the optional Chrome/Edge extension, then explore totals, a usage chart, your "AI mix", and insights. The feature dashboard prioritizes recorded time, observed sends, activity records, and active days; browser records do not invent token or billing values.
 There is no backend, account or API key. Data lives in the browser's `localStorage`, with JSON/CSV export as the backup path. It is a static Vite site deployed to GitHub Pages.
 
-**Baseline:** v1.0.0 was live and healthy at `41fc42a` (21/21 unit tests, Lighthouse Performance 100, 0 console errors). The observed-usage feature (`5c223cd`) was previously reported live with 38 passing tests; its provider-control fixtures pass, but logged-in provider layouts and real-profile installation remain unverified.
+**Baseline:** v1.0.0 was live and healthy at `41fc42a` (21/21 unit tests, Lighthouse Performance 100, 0 console errors). The observed-usage feature went live at `5c223cd` (deploy run #6) with 38 passing tests (51 on `main` now); its provider-control fixtures pass, but logged-in provider layouts and real-profile installation remain unverified.
 A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs, 14 code-health items and 9 extension items**, plus a 14-item feature roadmap. A follow-up review of the observed-usage feature added **N1–N11** ([AUDIT.md §10](AUDIT.md#10-follow-up-review-observed-ai-usage-main--5c223cd)).
 **Sprint 1 is merged into `main` via PR #6** (one commit per finding): A1, A2, A4, B5–B9, B11–B14, C4, C9, E3, E4 and N6.
-**A visual-polish pass is merged into `main` via PR #6**: B1, B3, B4, B10, B15, C1, C7, C8, E1, E2, E5 and the observed-usage follow-ups N1–N5, N9–N11. 51/51 tests pass and 23/26 checks. Next: verify the deployment for `a5719bb`, then consider the remaining items in [§12](#12-next-steps).
+**A visual-polish pass is merged into `main` via PR #6**: B1, B3, B4, B10, B15, C1, C7, C8, E1, E2, E5 and the observed-usage follow-ups N1–N5, N9–N11. 51/51 tests pass and 23/26 checks. Both are live since deploy run #7. Next: the remaining items in [§12](#12-next-steps).
 
 ---
 
 ## 2. Status at a glance
 
-✅ **fixed** means present in `main` @ `a5719bb`. Rows labelled "Live" describe earlier deployment evidence; current production deployment is unverified. Historical acceptance and Lighthouse results have not been rerun.
+✅ **fixed** means present in `main` @ `a5719bb`, which deploy run #7 published. Evidence for each status is in [§15](#15-review-log-2026-11-02-utc).
 
 | Area | Status | Notes / audit IDs |
 |---|---|---|
@@ -31,7 +31,7 @@ A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs
 | Search / provider filter | ✅ B1 fixed · ⚠️ B2 open | IME-safe, debounced, region updates, 50-row pages. **B2** (search filters the whole page) awaits an owner decision |
 | Usage chart / AI mix / Insights | ✅ fixed (B3, B12, C9, N3, N4, N10) | Real-size chart with read-out; time-share mix by tool; Insights by tool for tracked data. Open: **C10** all-time weekly buckets |
 | JSON import/export, CSV export | ✅ Live | **C1**–**C3**, **C11** polish |
-| Browser extension (MV3, Chrome/Edge 120+) | **v1.1.1** in main; current deployment unverified | 1.1.1: alarm no longer postponed (E3), readable popup (E4), updates from ≥ 1.1.0 keep tracking on (N6), icons (E1, E2), real logo (E5). Logged-in provider layouts and real-profile installation remain unverified. Open: E6–E9 |
+| Browser extension (MV3, Chrome/Edge 120+) | **v1.1.1** live in the site's ZIP (deploy run #7) | Installed copies don't update themselves: replace the files and click **Reload**. 1.1.1: alarm no longer postponed (E3), readable popup (E4), updates from ≥ 1.1.0 keep tracking on (N6), icons (E1, E2), real logo (E5). Logged-in provider layouts and real-profile installation remain unverified. Open: E6–E9 |
 | Logged + tracked time together | ❌ Double counted | **A3** |
 | Durability (Safari 7-day eviction, shared origin, backups) | ❌ Unaddressed | **A5** |
 | Accessibility | ✅ fixed (B4, B8–B11, C7) | axe contrast failures 347 → 0; text < 12px 82% → 0%; Lighthouse accessibility **100** on mobile and desktop |
@@ -64,7 +64,9 @@ A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs
 | 2026-11-01 | branch `feature/sprint-1` | Sprint 1 (one commit per finding) + follow-up review N1–N11; checks 0/26 → 13/26; tests 38 → 46 |
 | 2026-11-01 | branch `feature/visual-polish` | Chart, search, a11y, first run, demo story, brand assets, CSP; checks 13/26 → 23/26; tests 46 → 51 |
 | 2026-11-01 18:28 | PR #6 merged (`a5719bb`) → deploy run #7 ✅ | Sprint 1 + visual polish live; extension 1.1.1 in the ZIP. `main`'s tree is identical to the reviewed `feature/visual-polish` tip |
-| 2026-11-02 | branch `feature/refresh-handoff-notes` | Handoff notes refreshed after PR #6; 51/51 tests and 23/26 checks re-verified on `main` |
+| 2026-11-02 18:40 | branch `feature/refresh-handoff-notes` (`f7cc7b2`) | Handoff notes refreshed after PR #6 (cloud-sandbox review) |
+| 2026-11-02 18:44 | `5332f03`, merged as `f774909` | Parallel local review: packager, update-pause and rendering corrections |
+| 2026-11-02 18:49 | Reconciliation commit | One status per claim, with evidence; checks and Lighthouse re-run on `main`'s code (§15) |
 
 ---
 
@@ -72,7 +74,7 @@ A full audit on 2026-11-01 found **5 data/trust issues, 15 UX/accessibility bugs
 
 - **Static SPA**, Vite 7, **vanilla JS** with no framework. Views are HTML **template strings** written with `innerHTML`. Every user string passes `esc()`.
 - **State:** one `state` object in `src/main.js` (`view`, `days`, `provider`, `query`, `chart`, `mode`, `personal`, `demo`). `render()` = `shell()` + `renderContent()`.
-  `renderContent()` rebuilds content on navigation; filtering uses `updateResults()` to preserve the search input and provider select (B1/B10 fixes).
+  `renderContent()` rebuilds `#content` on navigation, date-range and chart-metric changes, after saves, deletes, clears and imports, and on cross-tab storage events. Search, the provider filter and "Show more" call `updateResults()`, which re-renders only `[data-region]` containers, so those controls keep focus and IME state (B1). Focus after a delete or edit is restored separately in `deleteSession()` and `openSession()` (B10).
 - **Routing:** `location.hash` → `navigate()` (`src/main.js:372`). Unknown hashes fall back to Overview.
 - **Data layer:** `src/data.js` holds pure functions for validation, filtering, aggregation, import/export, and storage I/O with injectable storage. The automated suite also covers extension accounting, control observations, and mocked worker integration.
 - **Persistence:** `localStorage` only. The demo dataset is generated deterministically from "now" on every load (`createDemoSessions`).
@@ -236,7 +238,7 @@ The full list with evidence and exact fixes is in [`AUDIT.md`](AUDIT.md). Fixed 
 
 ## 12. Next steps
 
-**Now:** both branches are merged into `main` at `a5719bb`; do not repeat the merges. Verify the corresponding Pages deployment separately. To update the extension, replace files in its existing folder and click **Reload**. Updates from before 1.1.0 pause tracking; updates from 1.1.0 or later preserve the choice.
+**Now:** both branches are merged into `main` at `a5719bb` and live (deploy run #7); do not repeat the merges. To update the extension, replace files in its existing folder and click **Reload**. Updates from before 1.1.0 pause tracking; updates from 1.1.0 or later preserve the choice.
 
 **Visual polish: done on `feature/visual-polish`.**
 
@@ -294,7 +296,7 @@ You are continuing work on "Orbit", a private, local-first AI-usage dashboard (s
 with an optional MV3 Chrome/Edge extension for active time and observed send actions (no message text). Repo: MAHANTHADEEKSHA-SB/web...
 
 1. Read WORK_STATUS.md (status, architecture, invariants, gotchas), then AUDIT.md (findings with exact fixes).
-2. Continue the current user task first. main @ a5719bb includes Sprint 1 and visual polish (PR #6). Current Pages deployment is unverified; check `git branch -r` for newer feature/* branches. The backlog in §12 is not an automatic replacement for the user task.
+2. Continue the current user task first. main @ a5719bb includes Sprint 1 and visual polish (PR #6) and is live (deploy run #7). Branch from main, not dev; check `git branch -r` for newer feature/* branches. The backlog in §12 is not an automatic replacement for the user task.
 3. For application changes run npm test && npm run build (51 tests currently). When fixing an audit ID, start `npx vite preview --host 127.0.0.1 --port 4173 --strictPort &`,
    then `node docs/audit/check.cjs --only=<ID>`. A claimed audit fix must pass its acceptance check; do not weaken assertions.
 4. Never break the invariants in WORK_STATUS.md §9 (no network/analytics, esc() all user text, validateSession, tests for logic).
@@ -303,15 +305,33 @@ with an optional MV3 Chrome/Edge extension for active time and observed send act
 ```
 
 
-## 15. Review corrections — 2026-11-03
+## 15. Review log (2026-11-02 UTC)
 
-- **Stale merge status:** Git confirms `a5719bb` merges `30a2db5` into `5c223cd`, and upstream main matches. The old instruction to merge these branches again was obsolete. A merged commit does not prove a successful Pages deployment.
-- **Incorrect packager description:** `scripts/package-extension.mjs` uses recursive enumeration, so the top-level-only warning contradicted the implemented E2 fix.
-- **Overbroad update warning:** `extension/background.js` checks `isOlderVersion(previousVersion, "1.1.0")`; only those older updates require renewed consent.
-- **Stale rendering explanation:** `updateResults()` updates named result regions; the old blanket explanation omitted the implemented focus-preservation fix.
-- **Validation scope:** 23/26 acceptance checks and Lighthouse 100 are earlier assistant reports. This review does not independently confirm those results. Onboarding verified 51 tests and the build, but Chromium rendering timed out. Real provider layouts and installed-extension behavior remain manual checks.
-- **Correction to my onboarding report:** the first sandboxed test output counted six test files, not six individual cases. The later unrestricted run reported 51 passing tests. An earlier failed npm install also overlapped a successful retry; the final sequential reinstall, 51-test run and build succeeded. Future refreshes must run one install at a time. My earlier readiness statement covers development commands and HTTP checks, not verified browser rendering or fresh-task restoration.
+Two reviews refreshed these notes in parallel after PR #6: a cloud-sandbox review (`f7cc7b2`, 18:40 UTC) and a local onboarding review (`5332f03`, 18:44 UTC, which is 00:14 IST on 2026-11-03). `f774909` merged them, and a follow-up commit reconciled the result so that each claim has one status and a source.
 
-### Concurrent review evidence preserved
+**Corrections to the earlier notes**
 
-The other assistant’s commit `f7cc7b2` (2026-11-02) reports GitHub Actions deploy run #7 for `a5719bb` succeeded at 2026-11-01 18:28 UTC, and reports a fresh 51/51 test run and 23/26 acceptance checks on main. Those are that review’s reported results; this environment has not independently repeated its deployment/API or browser checks. References above to deployment being unverified mean unverified by this environment, not evidence of deployment failure. The other review also reports `dev` is 33 commits behind main with only an extra merge commit; branch new work from main and recheck refs before any branch maintenance. No branch deletion or reset is authorized by these notes.
+- **Merge status:** `a5719bb` merges `30a2db5` into `5c223cd`, and `main`'s tree is identical to the reviewed `feature/visual-polish` tip, so the instruction to merge those branches was obsolete. (Both reviews.)
+- **Packager:** `scripts/package-extension.mjs` enumerates recursively, so the "top-level files only" warning contradicted the E2 fix. (Local review.)
+- **Update pause:** `background.js` pauses tracking only when `isOlderVersion(previousVersion, "1.1.0")`; later updates keep the user's choice. (Local review.)
+- **Rendering:** filtering goes through `updateResults()` (named regions), not a full re-render; §4 now lists every `renderContent()` trigger. (Local review, then the reconciliation.)
+- **`dev`:** 33 commits behind `main` with no unique content (only the PR #4 merge commit), so branch from `main`. (Cloud review.)
+
+**Verification record**
+
+| Claim | Status | Evidence and how to re-run |
+|---|---|---|
+| `main` is `a5719bb` (PR #6) | ✅ both reviews | `git fetch origin && git log -1 origin/main` |
+| Deploy run #7 published `a5719bb` | ✅ build and deploy jobs succeeded, 2026-11-01 18:28 UTC | GitHub Actions run `41336771778`, jobs `build` and `deploy`; read via the Actions API on 2026-11-02 |
+| The live URL serves this build | Not fetched | The cloud sandbox blocks github.io; open the Pages URL in a browser to confirm |
+| 51/51 tests, build, 13-file extension ZIP | ✅ both reviews, 2026-11-02 | `npm ci && npm test && npm run build` |
+| 23/26 acceptance checks (open: A3, B2, C12) | ✅ 2026-11-02 18:48 UTC | `npx vite preview --host 127.0.0.1 --port 4173 --strictPort &`, then `node docs/audit/check.cjs` |
+| Lighthouse | ✅ 2026-11-02 18:49 UTC: desktop 100/100/100, mobile 98/100/100 (performance/accessibility/best practices); SEO 91 from `robots.txt` on the local preview only | Lighthouse 12.8.2 against the local preview; mobile performance varies by a point or two between runs |
+| Browser checks run | Environment-dependent | Timed out in the local onboarding environment; ran normally in the cloud sandbox (Playwright + Chromium) |
+| Extension on logged-in provider sites in a real profile | Manual check | Install 1.1.1, enable tracking, use each provider, then compare the popup totals |
+
+**Process notes**
+
+- Run one `npm ci` or `npm install` at a time per checkout. Concurrent installs into the same `node_modules` fail and can leave a partial install.
+- `node --test` reports a subtest per test file; read `# tests` and `# pass` for the number of tests.
+- These notes authorize no branch deletion or reset. Recheck `git branch -r` before any branch maintenance.

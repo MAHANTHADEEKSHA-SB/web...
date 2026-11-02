@@ -6,9 +6,9 @@ Orbit is a private, local-first AI-usage dashboard: a static Vite SPA in vanilla
 
 ## Current handoff
 
-- Verified 2026-11-03: local and upstream `main` are `a5719bb` (PR #6). Sprint 1 and visual polish are merged, including extension 1.1.1. Do not repeat those merges. Current Pages deployment has not been verified.
-- Onboarding passed 51 tests and the production build; development/production HTTP and the extension ZIP were checked. Historical 23/26 acceptance and Lighthouse 100 results have not been rerun. Browser rendering timed out; real-profile extension behavior remains unverified. See WORK_STATUS.md §15 for corrections and evidence limits.
-- Concurrent review `f7cc7b2` reports successful deploy run #7 and fresh 23/26 acceptance checks on main; see WORK_STATUS.md’s concurrent-review evidence for attribution. Branch new work from main rather than stale dev.
+- `main` @ `a5719bb` (PR #6) contains Sprint 1 and the visual polish, including extension 1.1.1. Do not repeat those merges. Deploy run #7 published it: its build and deploy jobs succeeded at 2026-11-01 18:28 UTC (GitHub Actions run `41336771778`). The live URL itself has not been fetched (the cloud sandbox blocks github.io).
+- Re-verified 2026-11-02 18:47–18:49 UTC on `main`'s code: 51/51 tests, production build, 23/26 `check.cjs` checks (open: A3 and B2 owner decisions, C12 CI), Lighthouse desktop 100/100/100 and mobile 98/100/100 (performance/accessibility/best practices). Browser checks need Playwright + Chromium: they timed out in one local environment and ran normally in the cloud sandbox. Evidence and how to re-run: `WORK_STATUS.md` §15.
+- Branch new work from `main`, not `dev` (33 commits behind, no unique content). These notes authorize no branch deletion or reset.
 - The extension records active time and observed send actions. These are not provider-confirmed successful replies, tokens, billing, or remaining limits. Unknown metrics stay unavailable. Logged-in provider layouts and real-profile installation are not verified in this sandbox.
 - Continue the user's current task; the backlog in `WORK_STATUS.md` §12 is not an instruction to switch tasks.
 
